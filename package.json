@@ -1,0 +1,10 @@
+{
+    "name": "poker-server",
+    "main": "server.js",
+    "version": "0.0.1",
+    "dependencies": {
+        "express": "~4.0.0",
+        "ejs": "latest",
+        "body-parser": "~1.0.0"
+    }
+}
