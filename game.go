@@ -2,6 +2,7 @@
 package main 
 import (
     "math/rand"
+    "math"
     "strconv"
     "fmt"
 )
@@ -9,13 +10,17 @@ import (
 //==========================================================================
 //===============TYPES AND CONSTS===========================================
 //==========================================================================
-var SEED = 0 // seed for deal 
+var SEED int64 = 0 // seed for deal 
 type roundName int 
 type state int 
 type money uint64
 type Deck map[string]string 
-type Pot []Bets
 type guid string
+const (
+    fold int = iota
+    bet
+    call
+)
 const (
     deck int = iota 
     _ 
@@ -33,21 +38,16 @@ type Player struct {
     guid guid
     wealth money
 }
-type Bet struct {
-    potNumber int 
-    player guid
-    value uint
-}
 
-func (g *Game) Deal(seed int64) {
+func (g *Game) deal(seed int64) {
     unshuffled := newDeck()
-    numPlayers := len(g.Players)
-    r := rand.New(rand.NewSource)
+    numPlayers := len(g.table.players)
+    r := rand.New(rand.NewSource(seed))
     shuffled := rand.Perm(52)
     for i := 0; i < numPlayers; i = i + 2 {
-        card1, card2 = unshuffled[i], unshuffled[i+1]
-        g.deck[card1] = g.Players[i].guid
-        g.deck[card2] = g.Players[i].guid
+        card1, card2 := unshuffled[i], unshuffled[i+1]
+        g.deck[card1] = string(g.table.players[i].guid)
+        g.deck[card2] = string(g.table.players[i].guid)
     }
     n := numPlayers*2
     g.deck[unshuffled[n+0]] = "FLOP"
@@ -67,50 +67,76 @@ type Game struct {
     gameID guid
     handID guid
     deck Deck
-    round int  
     smallBlind money
     controller *Controller 
-    minBet money
 }
 
 func (g *Game) run() {
-
-    // LOOP: // this loop represents one complete hand 
-        // ->Bring in new players
-        // -> is players array > 0 ?
-        // -> make sure everyone playing has money to play (enought o make blinds, etc…). if not end game
-        // -> kick out players w/o enough money
-                    // *somehow revoke their token and let them know
-        // -> Check for new players that want into the game
-        // -> Queue up new players to join game, notify player they are in queue to join
-            // *queued players should get game state with player list that d/n include them
-            // before: no bets placed
-        
+    for {
+        g.addWaitingPlayersToGame()
+        g.removeBrokePlayers()
         g.betBlinds()
-        g.Deal(SEED)  
+        g.deal(SEED)  
         for i := 0 ; g.notSettled() && i < 4; i++{
-            g.round = i
             g.Bets()
-            g.Table.Reset()
+            g.table.ResetRound()
+            g.pot.newRound()
         }
         g.resolveBets()
-        g.AdvanceButton()
+        g.table.AdvanceButton()
+        g.table.ResetHand()
+    }
+}
 
-       
+//notSettled returns true if >1 player is not folded
+func (g *Game) notSettled() bool {
+    notFolded := 0
+    for _,p := range g.table.players {
+        if p.state != folded {
+            notFolded++
+        }
+    }
+    return notFolded > 1
+}
 
+func (g *Game) addWaitingPlayersToGame() {
+    numPlayersNeeded := uint(10 - len(g.table.players))
+    newPlayers := g.controller.getNewPlayers(g, numPlayersNeeded)
+    for _,p := range newPlayers {
+        err := g.table.addPlayer(p.guid)
+        if err != nil {
+            panic(err)
+        }
+    }
+}
 
+func (g *Game) removeBrokePlayers() {
+    for _,p := range g.table.players {
+        if p.wealth == 0 {
+            p.state = folded
+            g.controller.removePlayerFromGame(g, p.guid)
+        } else if p.wealth < 0 {
+            panic("player has < 0 wealth!")
+        }
+    }
+}
 
-        // -> send the game state to the controller(server) with a list of players to send info to
-        //     --->(controllre will then filter and format the data to send to each player so they
-        //      get just the info they need in JSON format)
-        // ENDLOOP
+func (g *Game) betBlinds(){
+    //Bet small blind
+    player := g.table.Next()
+    if player.wealth >= g.smallBlind {
+        g.commitBet(player, g.smallBlind)
+    } else {
+        g.commitBet(player, player.wealth)
+    }
 
-
-    // -> add queued players to game, if they are still responding
-    //     *Give them some default amount of money
-    //     *give them a token to send back requests
-    // ENDLOOP
-
+    //Bet big blind
+    player = g.table.Next()
+    if player.wealth >= 2*g.smallBlind {
+        g.commitBet(player, 2*g.smallBlind)
+    } else {
+        g.commitBet(player, player.wealth)
+    }
 }
 
 //setBlinds sets the money amount for the blinds
@@ -122,11 +148,10 @@ func (g *Game) setBlinds() {
 func (g *Game) betsNeeded() bool {
     numActives := 0
     numCalled := 0
-    for _, p := range g.Players {
+    for _, p := range g.table.players {
         if p.state == active{
             numActives++
-        }
-        else if p.state == called {
+        } else if p.state == called {
             numCalled++
         }
     }
@@ -134,105 +159,229 @@ func (g *Game) betsNeeded() bool {
 }
 
 //Bets gets the bet from each player
-func (g *Game) Bets() bool {
-    table = g.table 
-    g.topBet := 0 
-    g.minBet := g.smallBlind
+func (g *Game) Bets() {
+    table := g.table 
 
-    for player := table.Next(); g.betsNeeded(); player = table.Next() {
-        controller.sendGameState(g)
-
+    for player := g.table.Next(); g.betsNeeded(); player = g.table.Next() {
         if player.state != active {
             continue
         }
 
-        action, value, err := controller.getPlayerBet(g, player.guid)
+        action, betAmount, err := g.controller.getPlayerBet(g, player.guid)
 
         //Illegit bets
         if err != nil {
             //Err occurs on connection timeout
             player.state = folded
-            controller.removePlayerFromGame(g, player.guid)
+            g.controller.removePlayerFromGame(g, player.guid)
             continue
         }
-        if action == folded {
+        if action == fold {
             player.state = folded 
             continue 
         }
-        if g.betInvalid(player, bet) {
-            controller.registerInvalidBet(g, player.guid, bet)
+        if g.betInvalid(player, betAmount) {
+            g.controller.registerInvalidBet(g, player.guid, betAmount)
             player.state = folded
             continue
         }
 
         //Legit bets
-        g.CommitBet(player, bet)
-        minBet = bet
-        if bet > topBet { // raising 
-            topBet = bet
-            g.ResetPlayerState()
+        isRaising := (g.pot.totalPlayerBetThisRound(player.guid) + betAmount) > g.pot.totalToCall
+        if isRaising { 
+            g.table.ResetRoundPlayerState()
         }
+        g.commitBet(player, betAmount)
         player.state = called
     }
 
 }
 
-func (g *Game) betInvalid(p player, bet money) {
-    return (b > p.wealth) || (b < g.minBet) || (bet < player.wealth && bet < g.topBet)
+func (g *Game) betInvalid(player *Player, bet money) (bool) {
+    return (bet > player.wealth) || 
+           (bet < g.pot.minRaise) || 
+           (bet < player.wealth && (g.pot.totalPlayerBetThisRound(player.guid) + bet) < g.pot.totalToCall)
 }
 
-func (g *Game) CommitBet(p player, bet money) {
-    g.Pot.receiveBet(player.guid, bet)
-    player.wealth -= bet
+func (g *Game) commitBet(player *Player, amount money) {
+    if amount <= 0 {
+        panic("trying to bet <= 0")
+    }
+    g.pot.receiveBet(player.guid, amount)
+    player.wealth -= amount
+}
+
+//==========================================================================
+//===============POT AND BET================================================
+//==========================================================================
+type Pot struct{
+    minRaise money
+    totalToCall money
+    potNumber uint
+    bets []Bet
+}
+
+type Bet struct {
+    potNumber uint 
+    player guid
+    value money
+}
+
+//Resolves partial pots from previous round
+// increments potNumber to a previously unused number
+func (pot *Pot) newRound() {
+    pot.condenseBets()
+    pot.makeSidePots()
+    pot.minRaise = 0
+    pot.totalToCall = 0
+}
+
+func (pot *Pot) condenseBets(){
+    playerBets := make(map[guid]money)
+    betsCopy := make([]Bet,0)
+    for _,bet := range pot.bets {
+        if bet.potNumber == pot.potNumber {
+            playerBets[bet.player] += bet.value
+        } else {
+            betsCopy = append(betsCopy, bet)
+        }
+    }
+    for k,v := range playerBets {
+        betsCopy = append(betsCopy, Bet{potNumber:pot.potNumber, player: k, value:v})
+    }
+
+    pot.bets = betsCopy
+}
+
+func (pot *Pot) allBetsEqual(potNumber uint) bool {
+    var prevBet money
+    for _,bet := range pot.bets {
+        if bet.potNumber == potNumber{
+            prevBet = bet.value
+            break
+        }
+    }
+    for _,bet := range pot.bets {
+        if bet.potNumber != potNumber{
+            continue
+        }
+        if prevBet != bet.value{
+            return false
+        }
+    }
+    return true
+}
+
+func (pot *Pot) makeSidePots() {    
+    if pot.allBetsEqual(pot.potNumber) {
+        return
+    }
+    pot.potNumber++ //Make a new pot
+
+    minimum := money(math.MaxUint64)
+    for _,b := range pot.bets {
+        if b.value < minimum && b.potNumber == (pot.potNumber-1){
+            minimum = b.value
+        }
+    }
+    for _,b := range pot.bets {
+        if b.value > minimum && b.potNumber == (pot.potNumber-1){
+            excess := b.value - minimum
+            b.value = minimum
+            pot.bets = append(pot.bets, Bet{potNumber: pot.potNumber, player:b.player , value:excess})
+        }
+    }
+    pot.makeSidePots() //Call again to split new side pot into more side pots if necessary
+}
+
+func (pot *Pot) receiveBet(guid guid, bet money) {
+    newBet := Bet{potNumber: pot.potNumber, player: guid, value: bet}
+    pot.bets = append(pot.bets, newBet)
+    totalBet := pot.totalPlayerBetThisRound(guid)
+    if totalBet > pot.totalToCall {
+        pot.totalToCall = totalBet
+    }
+    raise := totalBet - pot.totalToCall
+    if raise > pot.minRaise {
+        pot.minRaise = 2 * raise
+    }
+}
+
+func (pot *Pot) totalInPot() (money) {
+    var sum money = 0
+    for _,m := range pot.bets {
+        sum += m.value
+    }
+    return sum
+}
+
+func (pot *Pot) totalPlayerBetThisRound(g guid) (money) {
+    sum := money(0)
+    for _,m := range pot.bets {
+        if m.player == g && m.potNumber == pot.potNumber {
+            sum += m.value
+        }
+    }
+    return sum
 }
 
 //==========================================================================
 //===============TABLE======================================================
 //==========================================================================
 type Table struct {
-    players [10]*Player
+    players []*Player
     index int 
 }
 
-func (t *Table) AdvanceButton() {
-    temp := t.players[0]
-    t.players[0:] = t.players[1:]
-    t.players[9] = temp 
-    if t.players[0] == nil {
-        t.AdvanceButton()
+func (t *Table) addPlayer(p guid) (err error) {
+    var newPlayer *Player = &Player{state: active, guid: p, wealth: 1000}
+    if len(t.players) >= 10 {
+        err = fmt.Errorf("Table full!")
+        return err
     }
+
+    t.players = append(t.players, newPlayer)
+    return err
+
 }
 
-func (t *Table) ResetPlayerState() {
-    for _, p := range t {
+func (t *Table) AdvanceButton() {
+    n := len(t.players)
+    last := t.players[0]
+    for i:=0; i < (len(t.players)-1);i++{
+        t.players[i] = t.players[i+1]
+    }
+    t.players[n - 1] = last
+}
+
+func (t *Table) ResetRoundPlayerState() {
+    for _, p := range t.players {
         if p.state == called {
             p.state = active
         }
     }
 }
 
-func (t *Table) Reset() {
+func (t *Table) ResetHandPlayerState() {
+    for _, p := range t.players {
+            p.state = active
+    }
+}
+
+func (t *Table) ResetRound() {
     t.index = 0
-    t.ResetPlayerState()
+    t.ResetRoundPlayerState()
 }
 
-func (t *Table) Next() (p player) {
-    for {
+func (t *Table) ResetHand() {
+    t.index = 0
+    t.ResetHandPlayerState()
+}
+
+func (t *Table) Next() (p *Player) {
         p = t.players[t.index]
-        t.index = (t.index + 1) % 10
-        if p != nil {
-            return p
-        }
-    }
-}
-
-func (t *Table) First() int {
-    for i := 0; i<10; i++ {
-        if t.players[i]==p {
-            return i 
-        }
-    }
-    panic("unreachable")
+        t.index = (t.index + 1) % len(t.players)
+        return p
 }
 
 //==========================================================================
@@ -246,7 +395,7 @@ func main() {
 //==========================================================================
 //===============HELPERS====================================================
 //==========================================================================
-func guid() string {
+func createGuid() string {
     return s4() + s4() + "-" + s4() + "-" + s4() + "-" + s4() + "-" + s4() + s4() + s4()
 }
 
