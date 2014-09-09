@@ -2,7 +2,8 @@ package main
 
 import (
     "testing"
-    "strconv"
+    "strings"
+    // "fmt"
 )
 
 //Hands - No Ties
@@ -25,11 +26,15 @@ var tk2 Hand = strings.Fields("5S 5D 5C 9C 6S") // Three of a kind
 var tp1 Hand = strings.Fields("5C 5H TH TC 2S") // two pair
 var tp2 Hand = strings.Fields("5S 5D 9H 9C AS") // two pair
 var tp3 Hand = strings.Fields("4S 4D 2H 2C KS") // two pair
+var pr1 Hand = strings.Fields("2S 3C JD 4S 4H") // pair
+var pr2 Hand = strings.Fields("2S 3C AD TS TC") // pair
+var pr3 Hand = strings.Fields("2S 3C KD QS QC") // pair
 var ah1 Hand = strings.Fields("AS 2S 3S 4S 6C") // A high
-var sh1 Hand = strings.Fields("2S 3S 4S 6C 7D") // 7 high
+var sh1 Hand = strings.Fields("2S 3S 4S 6C 8D") // 8 high
+var sh2 Hand = strings.Fields("2S 3S 4S 6C 7D") // 7 high
 
 //Sorted highest ranking to lowest ranking
-var []Hand allHands = {sf1,sf2,fk1,fk2,fk3,fh1,fh2,fh3,fl1,fl2,fl3,st1,st2,st3,tk1,tk2,tp1,tp2,tp3,ah1,sh1} 
+var allHands []Hand = []Hand{sf1,sf2,fk1,fk2,fk3,fh1,fh2,fh3,fl1,fl2,fl3,st1,st2,st3,tk1,tk2,tp1,tp2,tp3,ah1,sh1,sh2} 
 
 //Test
 func TestFindWinningHand(t *testing.T) {
@@ -39,20 +44,40 @@ func TestFindWinningHand(t *testing.T) {
     for i:=0;i < len(allHands)-2; i++{
         for q:=i+1; q < len(allHands)-1;q++{
             for n:=q+1;n < len(allHands);n++{
-                testGame = append(make([]Hand,0),allHands[i],allHands[q],allHands[n])
-                winners = findWinningHands(testGame)
+                testGame := append(make([]Hand,0),allHands[i],allHands[q],allHands[n])
+                winners := findWinningHands(testGame)
                 if len(winners) != 1{
                     t.Errorf("too many winners")
                 }
-                if winners[0] != allHands[i]{
+                if !areHandsEq(winners[0],allHands[i]){
                     t.Errorf("%v is winner, should be %v",
                              winners[0],allHands[i])
+                } else{
+                 //   fmt.Println(testGame, " --> ",winners)
                 }
             }
         }
     }
 
-    //Test Ties manually (5 cases of ties)
+    //Test Tie manually 
+    testGame := append(make([]Hand,0),allHands[10],allHands[8],allHands[8])
+    winners := findWinningHands(testGame)
+    if len(winners) != 2 && !areHandsEq(winners[0],allHands[8]) && !areHandsEq(winners[0],allHands[8]){
+        t.Errorf("%v are the winner, should be %v tied. Winners len=%v",
+         winners,allHands[3],len(winners))
+    }
+}
+
+func areHandsEq(a, b Hand) bool {
+    if len(a) != len(b) {
+        return false
+    }
+    for i := range a {
+        if a[i] != b[i] {
+            return false
+        }
+    }
+    return true
 }
 
 

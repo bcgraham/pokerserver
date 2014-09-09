@@ -2,9 +2,10 @@ package main
 
 import (
     "strings"
+    // "fmt"
 )
 
-type Hand [5]string 
+type Hand []string 
 var RANKS string = "--23456789TJQKA"
 
 //Returns nil if hands is empty
@@ -25,16 +26,14 @@ func findWinningHands(hands []Hand) (winners []Hand){
         }else if (test_hand > max_hand) || 
                  ((test_hand == max_hand) && gt(test_count,max_count)){
             //test_hand > max_hand
-            winners := append(make([]Hand,0),h)
+            winners = append(make([]Hand,0),h)
             max_hand,max_count = h.handRank()
         }else if (test_hand < max_hand) ||
                  ((test_hand == max_hand) && less(test_count,max_count)){
             //test_hand < max_hand
             continue
         }
-
     }
-
     return winners
 }
 

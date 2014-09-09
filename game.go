@@ -35,19 +35,18 @@ type Player struct {
 func (g *Game) deal(seed int64) {
     unshuffled := newDeck()
     numPlayers := len(g.table.players)
-    r := rand.New(rand.NewSource(seed))
-    shuffled := rand.Perm(52)
+    rand_ints := rand.New(rand.NewSource(seed)).Perm(52)
     for i := 0; i < numPlayers; i = i + 2 {
-        card1, card2 := unshuffled[i], unshuffled[i+1]
+        card1, card2 := unshuffled[rand_ints[i]], unshuffled[rand_ints[i+2]]
         g.deck[card1] = string(g.table.players[i].guid)
         g.deck[card2] = string(g.table.players[i].guid)
     }
     n := numPlayers*2
-    g.deck[unshuffled[n+0]] = "FLOP"
-    g.deck[unshuffled[n+1]] = "FLOP"
-    g.deck[unshuffled[n+2]] = "FLOP"
-    g.deck[unshuffled[n+3]] = "TURN"
-    g.deck[unshuffled[n+4]] = "RIVER"
+    g.deck[unshuffled[rand_ints[n+0]]] = "FLOP"
+    g.deck[unshuffled[rand_ints[n+1]]] = "FLOP"
+    g.deck[unshuffled[rand_ints[n+2]]] = "FLOP"
+    g.deck[unshuffled[rand_ints[n+3]]] = "TURN"
+    g.deck[unshuffled[rand_ints[n+4]]] = "RIVER"
 }
 
 
@@ -156,8 +155,6 @@ func (g *Game) betsNeeded() bool {
 
 //Bets gets the bet from each player
 func (g *Game) Bets() {
-    table := g.table 
-
     for player := g.table.Next(); g.betsNeeded(); player = g.table.Next() {
         if player.state != active {
             continue
