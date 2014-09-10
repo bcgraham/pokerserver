@@ -29,6 +29,10 @@ const (
 	called
 )
 
+const (
+	BUY_IN money = 500
+)
+
 type Player struct {
 	state  state
 	guid   guid
@@ -56,14 +60,14 @@ func (g *Game) deal(seed int64) {
 //===============GAME CLASS=================
 //==========================================
 type Game struct {
-	table      Table
-	pot        Pot
+	table      *Table
+	pot        *Pot
 	gameID     guid
 	handID     guid
 	deck       Deck
 	round      uint
 	smallBlind money
-	controller *Controller
+	controller *controller
 }
 
 func (g *Game) run() {
@@ -385,7 +389,7 @@ func NewGame(gc *GameController) (g *Game) {
 	g.table.players = make([]*Player, 0)
 	g.pot = new(Pot)
 	g.pot.bets = make([]Bet, 0)
-	g.controller = gc
+	g.controller = new(controller)
 	return g
 }
 

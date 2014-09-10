@@ -1,6 +1,10 @@
 package main
 
-import "sort"
+import (
+	"fmt"
+	"sort"
+	"sync"
+)
 
 type GameController struct {
 	Games map[guid]*Game
@@ -161,16 +165,41 @@ func NewGameController() (gc *GameController) {
 type controller struct {
 	toGame   chan Act
 	fromGame chan int // ???
-	buffer   []Act
+	buffer   Acts
+	waiting  []*Player
+	sync.RWMutex
 }
 
-func (c *controller) getNewPlayers(g *Game, n uint) {
-
+func (c *controller) getNewPlayers(g *Game, max uint) (players []*Player) {
+	c.Lock()
+	defer c.Unlock()
+	var x int = int(max)
+	if len(c.waiting) < int(max) {
+		x = len(c.waiting)
+	}
+	players = c.waiting[:x]
+	c.waiting = c.waiting[x : len(c.waiting)-x]
+	return players
 }
 
-func (c *controller) listener() {
-
+func (c *controller) enqueuePlayer(g *Game, p *Player) error {
+	c.Lock()
+	defer c.Unlock()
+	for _, player := range c.waiting {
+		if player.guid == p.guid {
+			return fmt.Errorf("controller: player %v is already queued to join table")
+		}
+	}
+	for _, player := range g.table.players {
+		if player.guid == p.guid {
+			return fmt.Errorf("controller: player %v is already sitting at the table")
+		}
+	}
+	c.waiting = append(c.waiting, p)
+	return nil
 }
+
+type Acts []Act
 
 type Act struct {
 	player    guid
@@ -178,7 +207,29 @@ type Act struct {
 	betAmount money
 }
 
-func (c *Controller) registerInvalidBet(g *Game, player guid, bet money)       { return }
-func (c *Controller) removePlayerFromGame(g *Game, player guid)                { return }
-func (c *Controller) getPlayerBet(g *Game, player guid) (int, money, error)    { return 2, money(2), nil }
-func (c *Controller) getNewPlayers(g *Game, numNeeded uint) (players []Player) { return []Player{} }
+func (as *Acts) getPlayerAct(wanted guid) (a Act, err error) {
+	for i := 0; i < len(*as); i++ {
+		if (*as)[i].player == wanted {
+			return as.remove(i), nil
+		}
+	}
+	return Act{}, fmt.Errorf("controller: player %v does not have an action in the queue", wanted)
+}
+
+func (as *Acts) remove(i int) (a Act) {
+	a = (*as)[i]
+	*as = append((*as)[:i], (*as)[i+1:]...)
+	*as = (*as)[:len(*as)-1]
+	return a
+}
+
+func NewPlayer(id guid) (p *Player) {
+	p = new(Player)
+	p.guid = id
+	p.wealth = BUY_IN
+	return p
+}
+
+func (c *controller) registerInvalidBet(g *Game, player guid, bet money)    { return }
+func (c *controller) removePlayerFromGame(g *Game, player guid)             { return }
+func (c *controller) getPlayerBet(g *Game, player guid) (int, money, error) { return 2, money(2), nil }
