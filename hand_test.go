@@ -1,9 +1,9 @@
 package main
 
 import (
-    "testing"
-    "strings"
-    // "fmt"
+	"fmt"
+	"strings"
+	"testing"
 )
 
 //Hands - No Ties
@@ -34,55 +34,58 @@ var sh1 Hand = strings.Fields("2S 3S 4S 6C 8D") // 8 high
 var sh2 Hand = strings.Fields("2S 3S 4S 6C 7D") // 7 high
 
 //Sorted highest ranking to lowest ranking
-var allHands []Hand = []Hand{sf1,sf2,fk1,fk2,fk3,fh1,fh2,fh3,fl1,fl2,fl3,st1,st2,st3,tk1,tk2,tp1,tp2,tp3,ah1,sh1,sh2} 
+var allHands []Hand = []Hand{sf1, sf2, fk1, fk2, fk3, fh1, fh2, fh3, fl1, fl2, fl3, st1, st2, st3, tk1, tk2, tp1, tp2, tp3, ah1, sh1, sh2}
 
 //Test
 func TestFindWinningHand(t *testing.T) {
-    //no Ties
-    //Run through every 3-hand combination of hands above
-    //Find the winning hands. In each case should be the hand with the lower index in allHands
-    for i:=0;i < len(allHands)-2; i++{
-        for q:=i+1; q < len(allHands)-1;q++{
-            for n:=q+1;n < len(allHands);n++{
-                testGame := append(make([]Hand,0),allHands[i],allHands[q],allHands[n])
-                winners := findWinningHands(testGame)
-                if len(winners) != 1{
-                    t.Errorf("too many winners")
-                }
-                if !areHandsEq(winners[0],allHands[i]){
-                    t.Errorf("%v is winner, should be %v",
-                             winners[0],allHands[i])
-                } else{
-                 //   fmt.Println(testGame, " --> ",winners)
-                }
-            }
-        }
-    }
+	//no Ties
+	//Run through every 3-hand combination of hands above
+	//Find the winning hands. In each case should be the hand with the lower index in allHands
+	fmt.Println("==== Three player game ====")
+	for i := 0; i < len(allHands)-2; i++ {
+		for q := i + 1; q < len(allHands)-1; q++ {
+			for n := q + 1; n < len(allHands); n++ {
+				testGame := append(make([]Hand, 0), allHands[i], allHands[q], allHands[n])
+				winners := findWinningHands(testGame)
+				if len(winners) != 1 {
+					t.Errorf("too many winners")
+				}
+				if !areHandsEq(winners[0], allHands[i]) {
+					t.Errorf("%v is winner, should be %v",
+						winners[0], allHands[i])
+				} else {
+					fmt.Println(testGame, " --> ", winners)
+				}
+			}
+		}
+	}
 
-    //Test Tie manually 
-    testGame := append(make([]Hand,0),allHands[10],allHands[8],allHands[8])
-    winners := findWinningHands(testGame)
-    if len(winners) != 2 && !areHandsEq(winners[0],allHands[8]) && !areHandsEq(winners[0],allHands[8]){
-        t.Errorf("%v are the winner, should be %v tied. Winners len=%v",
-         winners,allHands[3],len(winners))
-    }
+	fmt.Println("==== Single player game ====")
+	testGame := append(make([]Hand, 0), allHands[10])
+	winners := findWinningHands(testGame)
+	if len(winners) != 1 && !areHandsEq(winners[0], allHands[10]) {
+		t.Errorf("Incorrect number of winners. Incorrect winner")
+	} else {
+		fmt.Println(testGame, " --> ", winners)
+	}
+
+	//Test Tie manually
+	testGame = append(make([]Hand, 0), allHands[10], allHands[8], allHands[8])
+	winners = findWinningHands(testGame)
+	if len(winners) != 2 && !areHandsEq(winners[0], allHands[8]) && !areHandsEq(winners[0], allHands[8]) {
+		t.Errorf("%v are the winner, should be %v tied. Winners len=%v",
+			winners, allHands[3], len(winners))
+	}
 }
 
-func areHandsEq(a, b Hand) bool {
-    if len(a) != len(b) {
-        return false
-    }
-    for i := range a {
-        if a[i] != b[i] {
-            return false
-        }
-    }
-    return true
-}
+// func TestRawRanksAndSuits(t *testing.T) {
+//     //Test legimitate conversion
+//     var fl1 Hand = strings.Fields("TD AD 6D 7D 9D") // Flush
+//     var sh1 Hand = strings.Fields("2S 3S 4S 6C 8D") // 8 high
+//     var tk1 Hand = strings.Fields("TS TD TC JC 2S") // Three of a kind
 
+//     //Test failure on invalid suits/ranks
+//     var invalid1 Hand = strings.Fields("MS VD TC JC 2S")
+//     var invalid2 Hand = strings.Fields("0S TD TC JC 2S")
 
-
-
-
-
-
+// }

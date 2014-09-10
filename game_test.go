@@ -1,8 +1,8 @@
 package main
 
 import (
-	"testing"
 	"strconv"
+	"testing"
 )
 
 const passes = 100
@@ -28,5 +28,5 @@ func TestS4(t *testing.T) {
 }
 
 func TestDeal(t *testing.T) {
-	
+
 }

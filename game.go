@@ -28,10 +28,7 @@ const (
 	folded
 	called
 )
-
-const (
-	BUY_IN money = 500
-)
+const BUY_IN money = 500
 
 type Player struct {
 	state  state
@@ -63,15 +60,21 @@ type Game struct {
 	table      *Table
 	pot        *Pot
 	gameID     guid
-	handID     guid
 	deck       Deck
 	round      uint
 	smallBlind money
 	controller *controller
 }
 
+func newPot() *Pot {
+	pot := new(Pot)
+	pot.bets = make([]Bet, 0)
+	return pot
+}
+
 func (g *Game) run() {
 	for {
+		g.pot = newPot()
 		g.addWaitingPlayersToGame()
 		g.removeBrokePlayers()
 		g.betBlinds()
@@ -83,9 +86,115 @@ func (g *Game) run() {
 			g.pot.newRound()
 			g.round++
 		}
-		// g.resolveBets() -> commenting out for testing. TODO
+		g.resolveBets()
 		g.table.AdvanceButton()
 		g.table.ResetHand()
+	}
+}
+
+//Accepts a set of cards, represented as 2char strings and returns
+// all nChooseK combinations of those cards
+func nChooseK(allCards []string, k int) (allHands []Hand) {
+	if k == 0 {
+		return make([]Hand, 1)
+	}
+
+	for i := 0; i < len(allCards)-k+1; i++ {
+		combinations := nChooseK(allCards[i+1:], k-1)
+		for _, single_combination := range combinations {
+			single_combination = append(single_combination, allCards[i])
+			allHands = append(allHands, single_combination)
+		}
+	}
+
+	return allHands
+}
+
+func (g *Game) generateAllHands(p *Player) (allHands []Hand) {
+	allCards := make([]string, 0)
+	for card, location := range g.deck {
+		if location == string(p.guid) || location == "FLOP" || location == "TURN" || location == "RIVER" {
+			allCards = append(allCards, card)
+		}
+	}
+	if len(allCards) != 7 {
+		panicMsg := fmt.Sprintf("Should have 7 cards. Have %v", allCards)
+		panic(panicMsg)
+	}
+	return nChooseK(allCards, 5)
+}
+
+func (g *Game) getPlayerBestHand(p *Player) Hand {
+	allHands := g.generateAllHands(p)
+	bestHands := findWinningHands(allHands)
+	if len(bestHands) < 1 {
+		panicMsg := fmt.Sprintf("No best hand found for player %v, in hands: %v", p.guid, allHands)
+		panic(panicMsg)
+	}
+	return bestHands[0]
+}
+
+func (g *Game) getAllPlayersBestHands() (bestHands map[guid]Hand) {
+	bestHands = make(map[guid]Hand)
+	for _, p := range g.table.players {
+		if p.state != folded {
+			bestHand := g.getPlayerBestHand(p)
+			bestHands[p.guid] = bestHand
+		} else if p.state == active {
+			panic("Active players still exist in resolveBets")
+		}
+	}
+	return bestHands
+}
+
+func (g *Game) aggregatePots() (participants map[uint][]guid, moneys map[uint]money) {
+	participants = make(map[uint][]guid)
+	moneys = make(map[uint]money)
+	for _, bet := range g.pot.bets {
+		if _, ok := participants[bet.potNumber]; !ok {
+			participants[bet.potNumber] = make([]guid, 0)
+		}
+		participants[bet.potNumber] = append(participants[bet.potNumber], bet.player)
+		moneys[bet.potNumber] += bet.value
+	}
+	return participants, moneys
+}
+
+func (g *Game) getWinningPlayers(playersToBestHands map[guid]Hand, guids []guid) (winners []guid) {
+	hands := make([]Hand, 0)
+	for _, id := range guids {
+		hands = append(hands, playersToBestHands[id])
+	}
+	winningHands := findWinningHands(hands)
+	winners = make([]guid, 0)
+	for _, id := range guids {
+		for _, h := range winningHands {
+			if areHandsEq(playersToBestHands[id], h) {
+				winners = append(winners, id)
+				break
+			}
+		}
+	}
+	return winners
+}
+
+func (g *Game) resolveBets() {
+	playersToBestHands := g.getAllPlayersBestHands()
+	participantsInPots, moneyInPots := g.aggregatePots()
+
+	for potNumber, guids := range participantsInPots {
+		winners := g.getWinningPlayers(playersToBestHands, guids)
+		for _, p := range g.table.players {
+			for _, id := range winners {
+				if p.guid == id {
+					p.wealth += moneyInPots[potNumber] / money(len(winners))
+					if moneyInPots[potNumber]%money(len(winners)) > 0 {
+						p.wealth++
+						moneyInPots[potNumber]--
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -156,7 +265,7 @@ func (g *Game) betsNeeded() bool {
 			numCalled++
 		}
 	}
-	return (numActives >= 1) && (numCalled >= 1)
+	return (numActives >= 1) && (numCalled >= 1) //TODO
 }
 
 //Bets gets the bet from each player

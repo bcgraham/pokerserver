@@ -1,17 +1,17 @@
 package main
 
 import (
+	"code.google.com/p/go.crypto/bcrypt"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
 	"sync"
-
-	"code.google.com/p/go.crypto/bcrypt"
 
 	mux "github.com/gorilla/mux"
 )
