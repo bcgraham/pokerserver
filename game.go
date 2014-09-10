@@ -8,27 +8,20 @@ import (
 	"strconv"
 )
 
-//==========================================================================
-//===============TYPES AND CONSTS===========================================
-//==========================================================================
+//=============================================
+//===============TYPES AND CONSTS==============
+//=============================================
 var SEED int64 = 0 // seed for deal
 type roundName int
+type Deck map[string]string
 type state int
 type money uint64
-type Deck map[string]string
 type guid string
 
 const (
 	fold int = iota
 	bet
 	call
-)
-const (
-	deck int = iota
-	_
-	flop
-	turn
-	river
 )
 const (
 	active state = iota
@@ -45,33 +38,32 @@ type Player struct {
 func (g *Game) deal(seed int64) {
 	unshuffled := newDeck()
 	numPlayers := len(g.table.players)
-	r := rand.New(rand.NewSource(seed))
-	shuffled := rand.Perm(52)
+	rand_ints := rand.New(rand.NewSource(seed)).Perm(52)
 	for i := 0; i < numPlayers; i = i + 2 {
-		card1, card2 := unshuffled[i], unshuffled[i+1]
+		card1, card2 := unshuffled[rand_ints[i]], unshuffled[rand_ints[i+2]]
 		g.deck[card1] = string(g.table.players[i].guid)
 		g.deck[card2] = string(g.table.players[i].guid)
 	}
 	n := numPlayers * 2
-	g.deck[unshuffled[n+0]] = "FLOP"
-	g.deck[unshuffled[n+1]] = "FLOP"
-	g.deck[unshuffled[n+2]] = "FLOP"
-	g.deck[unshuffled[n+3]] = "TURN"
-	g.deck[unshuffled[n+4]] = "RIVER"
+	g.deck[unshuffled[rand_ints[n+0]]] = "FLOP"
+	g.deck[unshuffled[rand_ints[n+1]]] = "FLOP"
+	g.deck[unshuffled[rand_ints[n+2]]] = "FLOP"
+	g.deck[unshuffled[rand_ints[n+3]]] = "TURN"
+	g.deck[unshuffled[rand_ints[n+4]]] = "RIVER"
 }
 
-//==========================================================================
-//===============GAME CLASS=================================================
-//==========================================================================
+//==========================================
+//===============GAME CLASS=================
+//==========================================
 type Game struct {
-	table      *Table
-	pot        *Pot
+	table      Table
+	pot        Pot
 	gameID     guid
 	handID     guid
 	deck       Deck
-	smallBlind money
-	controller *controller
 	round      uint
+	smallBlind money
+	controller *Controller
 }
 
 func (g *Game) run() {
@@ -80,12 +72,14 @@ func (g *Game) run() {
 		g.removeBrokePlayers()
 		g.betBlinds()
 		g.deal(SEED)
+		g.round = 0
 		for i := 0; g.notSettled() && i < 4; i++ {
 			g.Bets()
 			g.table.ResetRound()
 			g.pot.newRound()
+			g.round++
 		}
-		g.resolveBets()
+		// g.resolveBets() -> commenting out for testing. TODO
 		g.table.AdvanceButton()
 		g.table.ResetHand()
 	}
@@ -163,8 +157,6 @@ func (g *Game) betsNeeded() bool {
 
 //Bets gets the bet from each player
 func (g *Game) Bets() {
-	table := g.table
-
 	for player := g.table.Next(); g.betsNeeded(); player = g.table.Next() {
 		if player.state != active {
 			continue
@@ -214,9 +206,9 @@ func (g *Game) commitBet(player *Player, amount money) {
 	player.wealth -= amount
 }
 
-//==========================================================================
-//===============POT AND BET================================================
-//==========================================================================
+//======================================
+//===============POT AND BET============
+//======================================
 type Pot struct {
 	minRaise    money
 	totalToCall money
@@ -328,9 +320,9 @@ func (pot *Pot) totalPlayerBetThisRound(g guid) money {
 	return sum
 }
 
-//==========================================================================
-//===============TABLE======================================================
-//==========================================================================
+//=====================================
+//===============TABLE=================
+//=====================================
 type Table struct {
 	players []*Player
 	index   int
@@ -397,9 +389,9 @@ func NewGame(gc *GameController) (g *Game) {
 	return g
 }
 
-//==========================================================================
-//===============HELPERS====================================================
-//==========================================================================
+//===========================================
+//===============HELPERS=====================
+//===========================================
 func createGuid() string {
 	return s4() + s4() + "-" + s4() + "-" + s4() + "-" + s4() + "-" + s4() + s4() + s4()
 }
