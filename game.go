@@ -533,7 +533,7 @@ func NewGame(gc *GameController) (g *Game) {
 	g.table.players = make([]*Player, 0)
 	g.pot = new(Pot)
 	g.pot.bets = make([]Bet, 0)
-	g.controller = new(controller)
+	g.controller = NewController()
 	g.smallBlind = 10
 	return g
 }

@@ -33,7 +33,6 @@ RESOURCE
 				"handle": "brian",
 				"state": "called"|"folded"|"active",
 				"wealth":500,
-				"small blind":true,
 				"seat":1
 			},
 			{
@@ -41,10 +40,11 @@ RESOURCE
 				"handle": "jake",
 				"state": "called"|"folded"|"active",
 				"wealth":500,
-				"small blind":false,
 				"seat":4
 			}
 		],
+		"Small blind": guid,
+		"Round": "Flop"
 		"Turn":{
 			"player":guid,
 			"bet to the player":5,
@@ -52,8 +52,8 @@ RESOURCE
 			"expiry": "2014-09-10 15:13:25"
 		}
 		"Cards":{
-			"Hole"["SA", "DA"]
-			"Flop":["S9", "ST", "H5"]
+			"Hole":["SA", "DA"]
+			"Community":["S9", "ST", "H5"]
 		}
 		"Pots": [
 			{

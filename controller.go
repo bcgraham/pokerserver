@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+	"time"
 )
 
 type GameController struct {
@@ -167,7 +168,7 @@ type controller struct {
 	fromGame chan int // ???
 	buffer   Acts
 	waiting  []*Player
-	sync.RWMutex
+	sync.Mutex
 }
 
 func (c *controller) getNewPlayers(g *Game, openSeats int) (players []*Player) {
@@ -202,7 +203,10 @@ func (c *controller) enqueuePlayer(g *Game, p *Player) error {
 	return nil
 }
 
-type Acts []Act
+type Acts struct {
+	acts []Act
+	sync.Mutex
+}
 
 type Act struct {
 	player    guid
@@ -210,19 +214,70 @@ type Act struct {
 	betAmount money
 }
 
-func (as *Acts) getPlayerAct(wanted guid) (a Act, err error) {
-	for i := 0; i < len(*as); i++ {
-		if (*as)[i].player == wanted {
-			return as.remove(i), nil
+func NewActs() Acts {
+	as := new(Acts)
+	as.acts = make([]Act, 0)
+	return *as
+}
+
+func (as *Acts) watchActs(ch chan Act, quit chan struct{}, player guid) {
+	ticker := time.NewTicker(500 * time.Millisecond)
+	for {
+		select {
+		case <-quit:
+			ticker.Stop()
+			return
+		case <-ticker.C:
+		}
+		as.Lock()
+		for i := 0; i < len(as.acts); i++ {
+			if as.acts[i].player == player {
+				ch <- as.remove(i)
+				as.Unlock()
+				return
+			}
+		}
+		as.Unlock()
+	}
+}
+
+func (c *controller) getPlayerBet(g *Game, wanted guid) (int, money, error) {
+	//func (c *controller) getPlayerBet(g *Game, player guid) (int, money, error) { return 2, money(2), nil }
+	timer := time.NewTimer(30 * time.Second)
+	actCh := make(chan Act)
+	quit := make(chan struct{})
+	var a Act
+	go c.buffer.watchActs(actCh, quit, wanted)
+ForSelect:
+	for {
+		select {
+		case <-timer.C:
+			quit <- struct{}{}
+			return 0, 0, fmt.Errorf("controller: timed out waiting for bet from player %v", wanted)
+		case a = <-actCh:
+			break ForSelect
 		}
 	}
-	return Act{}, fmt.Errorf("controller: player %v does not have an action in the queue", wanted)
+	return a.action, a.betAmount, nil
+}
+
+func (c *controller) registerPlayerAct(a Act) error {
+	as := c.buffer
+	as.Lock()
+	defer as.Unlock()
+	for i := 0; i < len(as.acts); i++ {
+		if as.acts[i].player == a.player {
+			return fmt.Errorf("controller: player %v already has an action in the queue", a.player)
+		}
+	}
+	as.acts = append(as.acts, a)
+	return nil
 }
 
 func (as *Acts) remove(i int) (a Act) {
-	a = (*as)[i]
-	*as = append((*as)[:i], (*as)[i+1:]...)
-	*as = (*as)[:len(*as)-1]
+	a = as.acts[i]
+	as.acts = append(as.acts[:i], as.acts[i+1:]...)
+	as.acts = as.acts[:len(as.acts)-1]
 	return a
 }
 
@@ -233,6 +288,22 @@ func NewPlayer(id guid) (p *Player) {
 	return p
 }
 
-func (c *controller) registerInvalidBet(g *Game, player guid, bet money)    { return }
-func (c *controller) removePlayerFromGame(g *Game, player guid)             { return }
-func (c *controller) getPlayerBet(g *Game, player guid) (int, money, error) { return 2, money(2), nil }
+func NewController() *controller {
+	c := new(controller)
+	c.toGame = make(chan Act)
+	c.fromGame = make(chan int)
+	c.buffer = NewActs()
+	c.waiting = make([]*Player, 0)
+	return c
+}
+
+func (c *controller) registerInvalidBet(g *Game, player guid, bet money) { return }
+func (c *controller) removePlayerFromGame(g *Game, player guid) {
+	as := c.buffer
+	for i := 0; i < len(as.acts); i++ {
+		if as.acts[i].player == player {
+			as.remove(i)
+		}
+	}
+	return
+}

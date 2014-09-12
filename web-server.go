@@ -172,7 +172,15 @@ func (re RestExposer) makeAct(w http.ResponseWriter, r *http.Request) {
 	}
 	act.player = playerID
 	g := re.gc.Games[gameID]
-	g.controller.toGame <- *act
+
+	if !g.table.contains(playerID) {
+		http.Error(w, "This player isn't seated at this game. Join game before trying to make a turn.", http.StatusUnauthorized)
+	}
+	err = g.controller.registerPlayerAct(*act)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusConflict)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
 }
 
