@@ -170,15 +170,18 @@ type controller struct {
 	sync.RWMutex
 }
 
-func (c *controller) getNewPlayers(g *Game, max uint) (players []*Player) {
+func (c *controller) getNewPlayers(g *Game, openSeats int) (players []*Player) {
 	c.Lock()
 	defer c.Unlock()
-	var x int = int(max)
-	if len(c.waiting) < int(max) {
+	x := openSeats
+	if len(c.waiting) == 0 {
+		return players
+	}
+	if len(c.waiting) < openSeats {
 		x = len(c.waiting)
 	}
 	players = c.waiting[:x]
-	c.waiting = c.waiting[x : len(c.waiting)-x]
+	c.waiting = c.waiting[x:len(c.waiting)]
 	return players
 }
 
@@ -192,7 +195,7 @@ func (c *controller) enqueuePlayer(g *Game, p *Player) error {
 	}
 	for _, player := range g.table.players {
 		if player.guid == p.guid {
-			return fmt.Errorf("controller: player %v is already sitting at the table")
+			return fmt.Errorf("controller: player %v is already sitting at the table", p.guid)
 		}
 	}
 	c.waiting = append(c.waiting, p)

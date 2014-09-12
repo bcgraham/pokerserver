@@ -2,21 +2,26 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"math"
 	"math/rand"
+	"os"
+	"sort"
 	"strconv"
 )
 
 //=============================================
 //===============TYPES AND CONSTS==============
 //=============================================
-var SEED int64 = 0 // seed for deal
 type roundName int
 type Deck map[string]string
 type state int
 type money uint64
 type guid string
+
+const SEED int64 = 0 // seed for deal
+var UNSHUFFLED = generateCardNames()
 
 const (
 	fold int = iota
@@ -37,20 +42,20 @@ type Player struct {
 }
 
 func (g *Game) deal(seed int64) {
-	unshuffled := newDeck()
+	g.deck = make(Deck, 52)
 	numPlayers := len(g.table.players)
 	rand_ints := rand.New(rand.NewSource(seed)).Perm(52)
-	for i := 0; i < numPlayers; i = i + 2 {
-		card1, card2 := unshuffled[rand_ints[i]], unshuffled[rand_ints[i+2]]
+	for i := 0; i < numPlayers; i++ {
+		card1, card2 := UNSHUFFLED[rand_ints[i*2]], UNSHUFFLED[rand_ints[i*2+1]]
 		g.deck[card1] = string(g.table.players[i].guid)
 		g.deck[card2] = string(g.table.players[i].guid)
 	}
 	n := numPlayers * 2
-	g.deck[unshuffled[rand_ints[n+0]]] = "FLOP"
-	g.deck[unshuffled[rand_ints[n+1]]] = "FLOP"
-	g.deck[unshuffled[rand_ints[n+2]]] = "FLOP"
-	g.deck[unshuffled[rand_ints[n+3]]] = "TURN"
-	g.deck[unshuffled[rand_ints[n+4]]] = "RIVER"
+	g.deck[UNSHUFFLED[rand_ints[n+0]]] = "FLOP"
+	g.deck[UNSHUFFLED[rand_ints[n+1]]] = "FLOP"
+	g.deck[UNSHUFFLED[rand_ints[n+2]]] = "FLOP"
+	g.deck[UNSHUFFLED[rand_ints[n+3]]] = "TURN"
+	g.deck[UNSHUFFLED[rand_ints[n+4]]] = "RIVER"
 }
 
 //==========================================
@@ -73,14 +78,27 @@ func newPot() *Pot {
 }
 
 func (g *Game) run() {
+	//Testing Stuff
+	defer gamePrinter(g)
+	reader := bufio.NewReader(os.Stdin)
+	//----
+
 	for {
-		g.pot = newPot()
+		println(">>")
+		_, _ = reader.ReadString('\n')
 		g.addWaitingPlayersToGame()
+		if len(g.table.players) < 2 {
+			continue //Need 2 players to start a hand
+		}
+		g.pot = newPot()
 		g.removeBrokePlayers()
 		g.betBlinds()
 		g.deal(SEED)
 		g.round = 0
 		for i := 0; g.notSettled() && i < 4; i++ {
+			println(">")
+			_, _ = reader.ReadString('\n')
+			gamePrinter(g)
 			g.Bets()
 			g.table.ResetRound()
 			g.pot.newRound()
@@ -136,14 +154,16 @@ func (g *Game) getPlayerBestHand(p *Player) Hand {
 
 func (g *Game) getAllPlayersBestHands() (bestHands map[guid]Hand) {
 	bestHands = make(map[guid]Hand)
-	for _, p := range g.table.players {
-		if p.state != folded {
-			bestHand := g.getPlayerBestHand(p)
-			bestHands[p.guid] = bestHand
-		} else if p.state == active {
-			panic("Active players still exist in resolveBets")
-		}
+	for i, p := range g.table.players {
+		fmt.Println("counting players; i = ", i)
+		bestHand := g.getPlayerBestHand(p)
+		bestHands[p.guid] = bestHand
+		//		The below code does not apply if we stop betting when all but one player has folded
+		// 		if p.state == active {
+		//			panic("Active players still exist in resolveBets")
+		//		}
 	}
+	fmt.Println("inside getAllPlayersBestHands(); len(bestHands) == ", len(bestHands))
 	return bestHands
 }
 
@@ -164,13 +184,29 @@ func (g *Game) getWinningPlayers(playersToBestHands map[guid]Hand, guids []guid)
 	hands := make([]Hand, 0)
 	for _, id := range guids {
 		hands = append(hands, playersToBestHands[id])
+		for _, c := range playersToBestHands[id] {
+			println("..", c)
+		}
+		println("$$$", id)
+	}
+	if len(hands) != len(g.table.players) {
+		panicMsg := fmt.Sprintf("Did not get a best hand for each player: len of hands = %v; len of g.table.players = %v\n", len(hands), len(g.table.players))
+		panic(panicMsg)
 	}
 	winningHands := findWinningHands(hands)
 	winners = make([]guid, 0)
 	for _, id := range guids {
 		for _, h := range winningHands {
 			if areHandsEq(playersToBestHands[id], h) {
-				winners = append(winners, id)
+				var p = new(Player)
+				for _, player := range g.table.players {
+					if player.guid == id {
+						p = player
+					}
+				}
+				if p.state != folded {
+					winners = append(winners, id)
+				}
 				break
 			}
 		}
@@ -210,7 +246,7 @@ func (g *Game) notSettled() bool {
 }
 
 func (g *Game) addWaitingPlayersToGame() {
-	numPlayersNeeded := uint(10 - len(g.table.players))
+	numPlayersNeeded := (10 - len(g.table.players))
 	newPlayers := g.controller.getNewPlayers(g, numPlayersNeeded)
 	for _, p := range newPlayers {
 		err := g.table.addPlayer(p.guid)
@@ -257,15 +293,15 @@ func (g *Game) setBlinds() {
 
 func (g *Game) betsNeeded() bool {
 	numActives := 0
-	numCalled := 0
+	numFolded := 0
 	for _, p := range g.table.players {
 		if p.state == active {
 			numActives++
-		} else if p.state == called {
-			numCalled++
+		} else if p.state == folded {
+			numFolded++
 		}
 	}
-	return (numActives >= 1) && (numCalled >= 1) //TODO
+	return (numActives >= 1) || !(len(g.table.players) == (1 + numFolded))
 }
 
 //Bets gets the bet from each player
@@ -276,7 +312,6 @@ func (g *Game) Bets() {
 		}
 
 		action, betAmount, err := g.controller.getPlayerBet(g, player.guid)
-
 		//Illegit bets
 		if err != nil {
 			//Err occurs on connection timeout
@@ -499,6 +534,7 @@ func NewGame(gc *GameController) (g *Game) {
 	g.pot = new(Pot)
 	g.pot.bets = make([]Bet, 0)
 	g.controller = new(controller)
+	g.smallBlind = 10
 	return g
 }
 
@@ -518,7 +554,7 @@ func s4() string {
 	return s
 }
 
-func newDeck() (deck [52]string) {
+func generateCardNames() (deck [52]string) {
 	suits := []string{"S", "C", "D", "H"}
 	ranks := []string{"2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"}
 	i := 0
@@ -552,4 +588,23 @@ func (t *Table) remove(id guid) {
 	} else {
 		t.players = append(t.players[:index], t.players[index+1:]...)
 	}
+}
+
+func (d Deck) String() string {
+	ordered := make([]string, 0)
+	for card, location := range d {
+		if len(location) > 5 {
+			location = string(location[:5])
+		}
+		ordered = append(ordered, location+":"+card)
+	}
+	ordered = sort.StringSlice(ordered)
+	s := "map[\n"
+	for _, card := range ordered {
+		s += "  "
+		s += card
+		s += "\n"
+	}
+	s += "\n"
+	return s
 }

@@ -85,6 +85,7 @@ func (re RestExposer) makeGame(w http.ResponseWriter, r *http.Request) {
 	gameID := guid(createGuid())
 	g := NewGame(re.gc)
 	re.gc.Games[gameID] = g
+	g.gameID = gameID
 	go g.run()
 	enc := json.NewEncoder(w)
 	w.WriteHeader(http.StatusCreated)
@@ -111,21 +112,28 @@ func (re RestExposer) getPlayers(w http.ResponseWriter, r *http.Request) {
 	enc.Encode(g.table.players)
 }
 
-func (re RestExposer) playerJoinGame(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	g, ok := re.gc.Games[guid(vars["GameID"])]
-	if !ok {
-		// TODO: handle errors
-		log.Fatalf("no such game: %v", vars["GameID"])
+func (re RestExposer) playerJoinGame(um *UserMap) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		g, ok := re.gc.Games[guid(vars["GameID"])]
+		credentials, err := parseAuthHeader(r.Header.Get("Authorization"))
+		username := credentials[0]
+		if err != nil {
+			log.Fatalf("playerJoinGame: problem parsing header to get player ID: %v", err)
+		}
+		if !ok {
+			// TODO: handle errors
+			log.Fatalf("playerJoinGame: no such game: %v", vars["GameID"])
+		}
+		p := NewPlayer(um.handles[username])
+		err = g.controller.enqueuePlayer(g, p)
+		if err != nil {
+			// TODO: make error type to marshal errors into for sending to clients
+			log.Fatalf("player can't join: %v", err)
+		}
+		w.WriteHeader(http.StatusCreated)
+		// need to write actual data or header sufficient?
 	}
-	p := NewPlayer(guid(vars["player"])) // TBD
-	err := g.controller.enqueuePlayer(g, p)
-	if err != nil {
-		// TODO: make error type to marshal errors into for sending to clients
-		log.Fatalf("player can't join: %v", err)
-	}
-	w.WriteHeader(http.StatusCreated)
-	// need to write actual data or header sufficient?
 }
 
 func (re RestExposer) quitPlayer(w http.ResponseWriter, r *http.Request) {
@@ -222,7 +230,7 @@ func main() {
 
 	players := game.PathPrefix("/players").Subrouter()
 	players.HandleFunc("/", re.getPlayers).Methods("GET")
-	players.HandleFunc("/", protector(UserMap, re.playerJoinGame)).Methods("POST")
+	players.HandleFunc("/", protector(UserMap, re.playerJoinGame(UserMap))).Methods("POST")
 
 	player := players.PathPrefix("/{PlayerID:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}}").Subrouter()
 	player.HandleFunc("/", protector(UserMap, re.quitPlayer)).Methods("DELETE")
@@ -231,7 +239,7 @@ func main() {
 	acts.HandleFunc("/", protector(UserMap, re.makeAct)).Methods("POST")
 
 	http.Handle("/", r)
-	http.ListenAndServe(":81", nil)
+	http.ListenAndServe(":8080", nil)
 
 }
 
