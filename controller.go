@@ -241,25 +241,26 @@ func (as *Acts) watchActs(ch chan Act, quit chan struct{}, player guid) {
 	}
 }
 
-func (c *controller) getPlayerBet(g *Game, wanted guid) (int, money, error) {
-	//func (c *controller) getPlayerBet(g *Game, player guid) (int, money, error) { return 2, money(2), nil }
-	timer := time.NewTimer(30 * time.Second)
-	actCh := make(chan Act)
-	quit := make(chan struct{})
-	var a Act
-	go c.buffer.watchActs(actCh, quit, wanted)
-ForSelect:
-	for {
-		select {
-		case <-timer.C:
-			quit <- struct{}{}
-			return 0, 0, fmt.Errorf("controller: timed out waiting for bet from player %v", wanted)
-		case a = <-actCh:
-			break ForSelect
-		}
-	}
-	return a.action, a.betAmount, nil
-}
+func (c *controller) getPlayerBet(g *Game, player guid) (int, money, error) { return 2, money(2), nil }
+
+// func (c *controller) getPlayerBet(g *Game, wanted guid) (int, money, error) {
+// 	timer := time.NewTimer(30 * time.Second)
+// 	actCh := make(chan Act)
+// 	quit := make(chan struct{})
+// 	var a Act
+// 	go c.buffer.watchActs(actCh, quit, wanted)
+// ForSelect:
+// 	for {
+// 		select {
+// 		case <-timer.C:
+// 			quit <- struct{}{}
+// 			return 0, 0, fmt.Errorf("controller: timed out waiting for bet from player %v", wanted)
+// 		case a = <-actCh:
+// 			break ForSelect
+// 		}
+// 	}
+// 	return a.action, a.betAmount, nil
+// }
 
 func (c *controller) registerPlayerAct(a Act) error {
 	as := c.buffer

@@ -9,6 +9,36 @@ type Hand []string
 
 var RANKS string = "--23456789TJQKA"
 
+// findWinners returns the slice of winning players.
+func findWinners(players []*Player) []*Player {
+	if len(players) == 0 {
+		return nil
+	} else if len(players) == 1 {
+		return players
+	}
+
+	hands := make([]Hand, 0)
+	for _, p := range players {
+		if p.state == folded {
+			continue
+		}
+		hands = append(hands, p.bestHand)
+	}
+
+	winningHands := findWinningHands(hands)
+
+	winners := make([]*Player, 0)
+	for _, p := range players {
+		for _, h := range winningHands {
+			if areHandsEq(p.bestHand, h) {
+				winners = append(winners, p)
+				break
+			}
+		}
+	}
+	return winners
+}
+
 //Returns nil if hands is empty
 func findWinningHands(hands []Hand) (winners []Hand) {
 	if len(hands) == 0 {

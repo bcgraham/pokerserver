@@ -1,0 +1,953 @@
+>>
+
+beforebet>
+
+####GAME fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a####
+round: 0
+small blind: 10
+table index: 0
+deck : map[
+  FLOP:7H
+  FLOP:3S
+  2fd31:JD
+  0dd7d:2S
+  2fd31:3H
+  FLOP:9S
+  TURN:5C
+  RIVER:2C
+  0dd7d:KH
+
+
+--Players--
+  0 2fd318e4-0947-64b9-8b63-14f5a5824b8b $990
+  0 0dd7d693-06f9-b5ba-694d-f8779579fa8a $980
+--Pot--
+  min raise: 0
+  total to call: 20
+  pot number: 0
+  [0 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 10]
+  [0 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 20]
+
+
+
+afterbet>
+
+####GAME fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a####
+round: 0
+small blind: 10
+table index: 0
+deck : map[
+  FLOP:7H
+  FLOP:3S
+  2fd31:JD
+  0dd7d:2S
+  TURN:5C
+  RIVER:2C
+  2fd31:3H
+  FLOP:9S
+  0dd7d:KH
+
+
+--Players--
+  1 2fd318e4-0947-64b9-8b63-14f5a5824b8b $990
+  0 0dd7d693-06f9-b5ba-694d-f8779579fa8a $980
+--Pot--
+  min raise: 0
+  total to call: 20
+  pot number: 0
+  [0 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 10]
+  [0 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 20]
+
+
+
+afternewround>
+
+####GAME fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a####
+round: 1
+small blind: 10
+table index: 0
+deck : map[
+  FLOP:7H
+  FLOP:3S
+  2fd31:JD
+  0dd7d:2S
+  2fd31:3H
+  FLOP:9S
+  TURN:5C
+  RIVER:2C
+  0dd7d:KH
+
+
+--Players--
+  1 2fd318e4-0947-64b9-8b63-14f5a5824b8b $990
+  0 0dd7d693-06f9-b5ba-694d-f8779579fa8a $980
+--Pot--
+  min raise: 0
+  total to call: 0
+  pot number: 1
+  [0 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 10]
+  [0 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 10]
+  [1 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 10]
+
+
+
+about to enter findWinningHands: len of hands ==  1
+after findWinningHands: len of winningHands ==  1
+ID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+GUID: 2fd318e4-0947-64b9-8b63-14f5a5824b8b
+ID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+GUID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+about to enter findWinningHands: len of hands ==  1
+after findWinningHands: len of winningHands ==  1
+ID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+GUID: 2fd318e4-0947-64b9-8b63-14f5a5824b8b
+ID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+GUID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+afterresolvebets>
+
+####GAME fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a####
+round: 1
+small blind: 10
+table index: 0
+deck : map[
+  FLOP:7H
+  FLOP:3S
+  2fd31:JD
+  0dd7d:2S
+  2fd31:3H
+  FLOP:9S
+  TURN:5C
+  RIVER:2C
+  0dd7d:KH
+
+
+--Players--
+  1 2fd318e4-0947-64b9-8b63-14f5a5824b8b $990
+  0 0dd7d693-06f9-b5ba-694d-f8779579fa8a $1010
+--Pot--
+  min raise: 0
+  total to call: 0
+  pot number: 1
+  [0 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 10]
+  [0 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 10]
+  [1 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 10]
+
+
+
+>>
+
+beforebet>
+
+####GAME fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a####
+round: 0
+small blind: 10
+table index: 0
+deck : map[
+  0dd7d:4C
+  0dd7d:7C
+  FLOP:8C
+  FLOP:3C
+  FLOP:QD
+  2fd31:KD
+  2fd31:4D
+  RIVER:8H
+  TURN:TD
+
+
+--Players--
+  0 0dd7d693-06f9-b5ba-694d-f8779579fa8a $1000
+  0 2fd318e4-0947-64b9-8b63-14f5a5824b8b $970
+--Pot--
+  min raise: 0
+  total to call: 20
+  pot number: 0
+  [0 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 10]
+  [0 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 20]
+
+
+
+afterbet>
+
+####GAME fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a####
+round: 0
+small blind: 10
+table index: 0
+deck : map[
+  0dd7d:4C
+  0dd7d:7C
+  FLOP:8C
+  FLOP:3C
+  FLOP:QD
+  2fd31:KD
+  2fd31:4D
+  RIVER:8H
+  TURN:TD
+
+
+--Players--
+  1 0dd7d693-06f9-b5ba-694d-f8779579fa8a $1000
+  0 2fd318e4-0947-64b9-8b63-14f5a5824b8b $970
+--Pot--
+  min raise: 0
+  total to call: 20
+  pot number: 0
+  [0 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 10]
+  [0 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 20]
+
+
+
+afternewround>
+
+####GAME fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a####
+round: 1
+small blind: 10
+table index: 0
+deck : map[
+  0dd7d:4C
+  0dd7d:7C
+  FLOP:8C
+  FLOP:3C
+  FLOP:QD
+  2fd31:KD
+  2fd31:4D
+  RIVER:8H
+  TURN:TD
+
+
+--Players--
+  1 0dd7d693-06f9-b5ba-694d-f8779579fa8a $1000
+  0 2fd318e4-0947-64b9-8b63-14f5a5824b8b $970
+--Pot--
+  min raise: 0
+  total to call: 0
+  pot number: 1
+  [0 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 10]
+  [0 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 10]
+  [1 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 10]
+
+
+
+about to enter findWinningHands: len of hands ==  1
+after findWinningHands: len of winningHands ==  1
+ID: 2fd318e4-0947-64b9-8b63-14f5a5824b8b
+GUID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+ID: 2fd318e4-0947-64b9-8b63-14f5a5824b8b
+GUID: 2fd318e4-0947-64b9-8b63-14f5a5824b8b
+about to enter findWinningHands: len of hands ==  1
+after findWinningHands: len of winningHands ==  1
+ID: 2fd318e4-0947-64b9-8b63-14f5a5824b8b
+GUID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+ID: 2fd318e4-0947-64b9-8b63-14f5a5824b8b
+GUID: 2fd318e4-0947-64b9-8b63-14f5a5824b8b
+afterresolvebets>
+
+####GAME fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a####
+round: 1
+small blind: 10
+table index: 0
+deck : map[
+  0dd7d:4C
+  0dd7d:7C
+  FLOP:8C
+  FLOP:3C
+  FLOP:QD
+  2fd31:KD
+  2fd31:4D
+  RIVER:8H
+  TURN:TD
+
+
+--Players--
+  1 0dd7d693-06f9-b5ba-694d-f8779579fa8a $1000
+  0 2fd318e4-0947-64b9-8b63-14f5a5824b8b $1000
+--Pot--
+  min raise: 0
+  total to call: 0
+  pot number: 1
+  [0 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 10]
+  [0 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 10]
+  [1 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 10]
+
+
+
+>>
+
+beforebet>
+
+####GAME fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a####
+round: 0
+small blind: 10
+table index: 0
+deck : map[
+  0dd7d:8H
+  FLOP:3C
+  2fd31:7C
+  FLOP:8S
+  TURN:KH
+  0dd7d:9S
+  2fd31:JC
+  FLOP:TS
+  RIVER:TH
+
+
+--Players--
+  0 2fd318e4-0947-64b9-8b63-14f5a5824b8b $990
+  0 0dd7d693-06f9-b5ba-694d-f8779579fa8a $980
+--Pot--
+  min raise: 0
+  total to call: 20
+  pot number: 0
+  [0 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 10]
+  [0 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 20]
+
+
+
+afterbet>
+
+####GAME fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a####
+round: 0
+small blind: 10
+table index: 0
+deck : map[
+  0dd7d:8H
+  FLOP:3C
+  2fd31:7C
+  FLOP:8S
+  TURN:KH
+  0dd7d:9S
+  2fd31:JC
+  FLOP:TS
+  RIVER:TH
+
+
+--Players--
+  1 2fd318e4-0947-64b9-8b63-14f5a5824b8b $990
+  0 0dd7d693-06f9-b5ba-694d-f8779579fa8a $980
+--Pot--
+  min raise: 0
+  total to call: 20
+  pot number: 0
+  [0 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 10]
+  [0 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 20]
+
+
+
+afternewround>
+
+####GAME fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a####
+round: 1
+small blind: 10
+table index: 0
+deck : map[
+  0dd7d:8H
+  FLOP:3C
+  2fd31:7C
+  FLOP:8S
+  TURN:KH
+  0dd7d:9S
+  2fd31:JC
+  FLOP:TS
+  RIVER:TH
+
+
+--Players--
+  1 2fd318e4-0947-64b9-8b63-14f5a5824b8b $990
+  0 0dd7d693-06f9-b5ba-694d-f8779579fa8a $980
+--Pot--
+  min raise: 0
+  total to call: 0
+  pot number: 1
+  [0 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 10]
+  [0 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 10]
+  [1 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 10]
+
+
+
+about to enter findWinningHands: len of hands ==  1
+after findWinningHands: len of winningHands ==  1
+ID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+GUID: 2fd318e4-0947-64b9-8b63-14f5a5824b8b
+ID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+GUID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+about to enter findWinningHands: len of hands ==  1
+after findWinningHands: len of winningHands ==  1
+ID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+GUID: 2fd318e4-0947-64b9-8b63-14f5a5824b8b
+ID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+GUID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+afterresolvebets>
+
+####GAME fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a####
+round: 1
+small blind: 10
+table index: 0
+deck : map[
+  0dd7d:8H
+  FLOP:3C
+  2fd31:7C
+  FLOP:8S
+  TURN:KH
+  0dd7d:9S
+  2fd31:JC
+  FLOP:TS
+  RIVER:TH
+
+
+--Players--
+  1 2fd318e4-0947-64b9-8b63-14f5a5824b8b $990
+  0 0dd7d693-06f9-b5ba-694d-f8779579fa8a $1010
+--Pot--
+  min raise: 0
+  total to call: 0
+  pot number: 1
+  [0 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 10]
+  [0 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 10]
+  [1 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 10]
+
+
+
+>>
+
+beforebet>
+
+####GAME fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a####
+round: 0
+small blind: 10
+table index: 0
+deck : map[
+  FLOP:7D
+  0dd7d:6C
+  TURN:QD
+  FLOP:9H
+  FLOP:4S
+  RIVER:7S
+  2fd31:8D
+  0dd7d:JS
+  2fd31:JH
+
+
+--Players--
+  0 0dd7d693-06f9-b5ba-694d-f8779579fa8a $1000
+  0 2fd318e4-0947-64b9-8b63-14f5a5824b8b $970
+--Pot--
+  min raise: 0
+  total to call: 20
+  pot number: 0
+  [0 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 10]
+  [0 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 20]
+
+
+
+afterbet>
+
+####GAME fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a####
+round: 0
+small blind: 10
+table index: 0
+deck : map[
+  FLOP:7D
+  0dd7d:6C
+  TURN:QD
+  FLOP:9H
+  FLOP:4S
+  RIVER:7S
+  2fd31:8D
+  0dd7d:JS
+  2fd31:JH
+
+
+--Players--
+  1 0dd7d693-06f9-b5ba-694d-f8779579fa8a $1000
+  0 2fd318e4-0947-64b9-8b63-14f5a5824b8b $970
+--Pot--
+  min raise: 0
+  total to call: 20
+  pot number: 0
+  [0 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 10]
+  [0 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 20]
+
+
+
+afternewround>
+
+####GAME fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a####
+round: 1
+small blind: 10
+table index: 0
+deck : map[
+  FLOP:7D
+  0dd7d:6C
+  TURN:QD
+  FLOP:9H
+  FLOP:4S
+  RIVER:7S
+  2fd31:8D
+  0dd7d:JS
+  2fd31:JH
+
+
+--Players--
+  1 0dd7d693-06f9-b5ba-694d-f8779579fa8a $1000
+  0 2fd318e4-0947-64b9-8b63-14f5a5824b8b $970
+--Pot--
+  min raise: 0
+  total to call: 0
+  pot number: 1
+  [0 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 10]
+  [0 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 10]
+  [1 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 10]
+
+
+
+about to enter findWinningHands: len of hands ==  1
+after findWinningHands: len of winningHands ==  1
+ID: 2fd318e4-0947-64b9-8b63-14f5a5824b8b
+GUID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+ID: 2fd318e4-0947-64b9-8b63-14f5a5824b8b
+GUID: 2fd318e4-0947-64b9-8b63-14f5a5824b8b
+about to enter findWinningHands: len of hands ==  1
+after findWinningHands: len of winningHands ==  1
+ID: 2fd318e4-0947-64b9-8b63-14f5a5824b8b
+GUID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+ID: 2fd318e4-0947-64b9-8b63-14f5a5824b8b
+GUID: 2fd318e4-0947-64b9-8b63-14f5a5824b8b
+afterresolvebets>
+
+####GAME fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a####
+round: 1
+small blind: 10
+table index: 0
+deck : map[
+  FLOP:7D
+  0dd7d:6C
+  TURN:QD
+  FLOP:9H
+  FLOP:4S
+  RIVER:7S
+  2fd31:8D
+  0dd7d:JS
+  2fd31:JH
+
+
+--Players--
+  1 0dd7d693-06f9-b5ba-694d-f8779579fa8a $1000
+  0 2fd318e4-0947-64b9-8b63-14f5a5824b8b $1000
+--Pot--
+  min raise: 0
+  total to call: 0
+  pot number: 1
+  [0 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 10]
+  [0 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 10]
+  [1 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 10]
+
+
+
+>>
+
+beforebet>
+
+####GAME fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a####
+round: 0
+small blind: 10
+table index: 0
+deck : map[
+  FLOP:JC
+  FLOP:8C
+  2fd31:2C
+  0dd7d:AC
+  2fd31:6H
+  RIVER:TD
+  FLOP:9H
+  TURN:3S
+  0dd7d:4S
+
+
+--Players--
+  0 2fd318e4-0947-64b9-8b63-14f5a5824b8b $990
+  0 0dd7d693-06f9-b5ba-694d-f8779579fa8a $980
+--Pot--
+  min raise: 0
+  total to call: 20
+  pot number: 0
+  [0 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 10]
+  [0 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 20]
+
+
+
+afterbet>
+
+####GAME fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a####
+round: 0
+small blind: 10
+table index: 0
+deck : map[
+  FLOP:JC
+  FLOP:8C
+  2fd31:2C
+  2fd31:6H
+  0dd7d:AC
+  RIVER:TD
+  0dd7d:4S
+  FLOP:9H
+  TURN:3S
+
+
+--Players--
+  1 2fd318e4-0947-64b9-8b63-14f5a5824b8b $990
+  0 0dd7d693-06f9-b5ba-694d-f8779579fa8a $980
+--Pot--
+  min raise: 0
+  total to call: 20
+  pot number: 0
+  [0 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 10]
+  [0 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 20]
+
+
+
+afternewround>
+
+####GAME fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a####
+round: 1
+small blind: 10
+table index: 0
+deck : map[
+  FLOP:JC
+  FLOP:8C
+  2fd31:2C
+  2fd31:6H
+  0dd7d:AC
+  RIVER:TD
+  TURN:3S
+  0dd7d:4S
+  FLOP:9H
+
+
+--Players--
+  1 2fd318e4-0947-64b9-8b63-14f5a5824b8b $990
+  0 0dd7d693-06f9-b5ba-694d-f8779579fa8a $980
+--Pot--
+  min raise: 0
+  total to call: 0
+  pot number: 1
+  [0 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 10]
+  [0 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 10]
+  [1 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 10]
+
+
+
+about to enter findWinningHands: len of hands ==  1
+after findWinningHands: len of winningHands ==  1
+ID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+GUID: 2fd318e4-0947-64b9-8b63-14f5a5824b8b
+ID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+GUID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+about to enter findWinningHands: len of hands ==  1
+after findWinningHands: len of winningHands ==  1
+ID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+GUID: 2fd318e4-0947-64b9-8b63-14f5a5824b8b
+ID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+GUID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+afterresolvebets>
+
+####GAME fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a####
+round: 1
+small blind: 10
+table index: 0
+deck : map[
+  FLOP:JC
+  FLOP:8C
+  2fd31:2C
+  2fd31:6H
+  0dd7d:AC
+  RIVER:TD
+  TURN:3S
+  0dd7d:4S
+  FLOP:9H
+
+
+--Players--
+  1 2fd318e4-0947-64b9-8b63-14f5a5824b8b $990
+  0 0dd7d693-06f9-b5ba-694d-f8779579fa8a $1010
+--Pot--
+  min raise: 0
+  total to call: 0
+  pot number: 1
+  [0 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 10]
+  [0 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 10]
+  [1 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 10]
+
+
+
+>>
+
+beforebet>
+
+####GAME fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a####
+round: 0
+small blind: 10
+table index: 0
+deck : map[
+  0dd7d:JC
+  FLOP:4D
+  TURN:3D
+  FLOP:AD
+  2fd31:8D
+  2fd31:5C
+  0dd7d:6S
+  FLOP:QC
+  RIVER:9S
+
+
+--Players--
+  0 0dd7d693-06f9-b5ba-694d-f8779579fa8a $1000
+  0 2fd318e4-0947-64b9-8b63-14f5a5824b8b $970
+--Pot--
+  min raise: 0
+  total to call: 20
+  pot number: 0
+  [0 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 10]
+  [0 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 20]
+
+
+
+afterbet>
+
+####GAME fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a####
+round: 0
+small blind: 10
+table index: 0
+deck : map[
+  0dd7d:JC
+  TURN:3D
+  FLOP:4D
+  FLOP:AD
+  2fd31:5C
+  2fd31:8D
+  FLOP:QC
+  RIVER:9S
+  0dd7d:6S
+
+
+--Players--
+  1 0dd7d693-06f9-b5ba-694d-f8779579fa8a $1000
+  0 2fd318e4-0947-64b9-8b63-14f5a5824b8b $970
+--Pot--
+  min raise: 0
+  total to call: 20
+  pot number: 0
+  [0 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 10]
+  [0 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 20]
+
+
+
+afternewround>
+
+####GAME fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a####
+round: 1
+small blind: 10
+table index: 0
+deck : map[
+  0dd7d:JC
+  FLOP:4D
+  TURN:3D
+  FLOP:AD
+  2fd31:8D
+  2fd31:5C
+  0dd7d:6S
+  FLOP:QC
+  RIVER:9S
+
+
+--Players--
+  1 0dd7d693-06f9-b5ba-694d-f8779579fa8a $1000
+  0 2fd318e4-0947-64b9-8b63-14f5a5824b8b $970
+--Pot--
+  min raise: 0
+  total to call: 0
+  pot number: 1
+  [0 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 10]
+  [0 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 10]
+  [1 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 10]
+
+
+
+about to enter findWinningHands: len of hands ==  1
+after findWinningHands: len of winningHands ==  1
+ID: 2fd318e4-0947-64b9-8b63-14f5a5824b8b
+GUID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+ID: 2fd318e4-0947-64b9-8b63-14f5a5824b8b
+GUID: 2fd318e4-0947-64b9-8b63-14f5a5824b8b
+about to enter findWinningHands: len of hands ==  1
+after findWinningHands: len of winningHands ==  1
+ID: 2fd318e4-0947-64b9-8b63-14f5a5824b8b
+GUID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+ID: 2fd318e4-0947-64b9-8b63-14f5a5824b8b
+GUID: 2fd318e4-0947-64b9-8b63-14f5a5824b8b
+afterresolvebets>
+
+####GAME fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a####
+round: 1
+small blind: 10
+table index: 0
+deck : map[
+  0dd7d:JC
+  FLOP:4D
+  TURN:3D
+  FLOP:AD
+  2fd31:8D
+  2fd31:5C
+  RIVER:9S
+  0dd7d:6S
+  FLOP:QC
+
+
+--Players--
+  1 0dd7d693-06f9-b5ba-694d-f8779579fa8a $1000
+  0 2fd318e4-0947-64b9-8b63-14f5a5824b8b $1000
+--Pot--
+  min raise: 0
+  total to call: 0
+  pot number: 1
+  [0 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 10]
+  [0 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 10]
+  [1 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 10]
+
+
+
+>>
+
+beforebet>
+
+####GAME fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a####
+round: 0
+small blind: 10
+table index: 0
+deck : map[
+  FLOP:KD
+  2fd31:JC
+  FLOP:2S
+  0dd7d:QD
+  RIVER:3D
+  0dd7d:TS
+  FLOP:5D
+  TURN:KS
+  2fd31:7S
+
+
+--Players--
+  0 2fd318e4-0947-64b9-8b63-14f5a5824b8b $990
+  0 0dd7d693-06f9-b5ba-694d-f8779579fa8a $980
+--Pot--
+  min raise: 0
+  total to call: 20
+  pot number: 0
+  [0 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 10]
+  [0 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 20]
+
+
+
+afterbet>
+
+####GAME fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a####
+round: 0
+small blind: 10
+table index: 0
+deck : map[
+  2fd31:JC
+  FLOP:KD
+  FLOP:2S
+  0dd7d:QD
+  0dd7d:TS
+  RIVER:3D
+  2fd31:7S
+  FLOP:5D
+  TURN:KS
+
+
+--Players--
+  1 2fd318e4-0947-64b9-8b63-14f5a5824b8b $990
+  0 0dd7d693-06f9-b5ba-694d-f8779579fa8a $980
+--Pot--
+  min raise: 0
+  total to call: 20
+  pot number: 0
+  [0 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 10]
+  [0 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 20]
+
+
+
+afternewround>
+
+####GAME fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a####
+round: 1
+small blind: 10
+table index: 0
+deck : map[
+  2fd31:JC
+  FLOP:KD
+  FLOP:2S
+  0dd7d:QD
+  0dd7d:TS
+  RIVER:3D
+  2fd31:7S
+  FLOP:5D
+  TURN:KS
+
+
+--Players--
+  1 2fd318e4-0947-64b9-8b63-14f5a5824b8b $990
+  0 0dd7d693-06f9-b5ba-694d-f8779579fa8a $980
+--Pot--
+  min raise: 0
+  total to call: 0
+  pot number: 1
+  [0 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 10]
+  [0 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 10]
+  [1 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 10]
+
+
+
+about to enter findWinningHands: len of hands ==  1
+after findWinningHands: len of winningHands ==  1
+ID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+GUID: 2fd318e4-0947-64b9-8b63-14f5a5824b8b
+ID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+GUID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+about to enter findWinningHands: len of hands ==  1
+after findWinningHands: len of winningHands ==  1
+ID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+GUID: 2fd318e4-0947-64b9-8b63-14f5a5824b8b
+ID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+GUID: 0dd7d693-06f9-b5ba-694d-f8779579fa8a
+afterresolvebets>
+
+####GAME fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a####
+round: 1
+small blind: 10
+table index: 0
+deck : map[
+  2fd31:JC
+  FLOP:KD
+  FLOP:2S
+  0dd7d:QD
+  0dd7d:TS
+  RIVER:3D
+  2fd31:7S
+  FLOP:5D
+  TURN:KS
+
+
+--Players--
+  1 2fd318e4-0947-64b9-8b63-14f5a5824b8b $990
+  0 0dd7d693-06f9-b5ba-694d-f8779579fa8a $1010
+--Pot--
+  min raise: 0
+  total to call: 0
+  pot number: 1
+  [0 | 2fd318e4-0947-64b9-8b63-14f5a5824b8b | 10]
+  [0 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 10]
+  [1 | 0dd7d693-06f9-b5ba-694d-f8779579fa8a | 10]
+
+
+
+>>
