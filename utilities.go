@@ -36,3 +36,71 @@ func gamePrinter(g *Game) {
 	}
 	fmt.Fprint(f, "\n\n\n")
 }
+
+func createGuid() string {
+	return s4() + s4() + "-" + s4() + "-" + s4() + "-" + s4() + "-" + s4() + s4() + s4()
+}
+
+func s4() string {
+	s := ""
+	for i := 0; i < 4; i++ {
+		n := rand.Int63n(16)
+		s += strconv.FormatInt(n, 16)
+	}
+	return s
+}
+
+func generateCardNames() (deck [52]string) {
+	suits := []string{"S", "C", "D", "H"}
+	ranks := []string{"2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"}
+	i := 0
+	for _, suit := range suits {
+		for _, rank := range ranks {
+			deck[i] = rank + suit
+			i++
+		}
+	}
+	return deck
+}
+
+func (t *Table) contains(id guid) bool {
+	for _, player := range t.players {
+		if player.guid == id {
+			return true
+		}
+	}
+	return false
+}
+
+func (t *Table) remove(id guid) {
+	var index int
+	for i, player := range t.players {
+		if player.guid == id {
+			index = i
+		}
+	}
+	if index == len(t.players)-1 {
+		t.players = t.players[:index]
+	} else {
+		t.players = append(t.players[:index], t.players[index+1:]...)
+	}
+}
+
+func (d Deck) String() string {
+	ordered := make([]string, 0)
+	for card, location := range d {
+		if len(location) > 5 {
+			location = string(location[:5])
+		}
+		ordered = append(ordered, location+":"+card)
+	}
+	ordered = sort.StringSlice(ordered)
+	s := "map[\n"
+	for _, card := range ordered {
+		s += "  "
+		s += card
+		s += "\n"
+	}
+	s += "\n"
+	return s
+}
