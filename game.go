@@ -84,7 +84,6 @@ func (g *Game) run() {
 	//----
 
 	for {
-		println(">>")
 		_, _ = reader.ReadString('\n')
 		g.addWaitingPlayersToGame()
 		if len(g.table.players) < 2 {
@@ -529,6 +528,7 @@ func (t *Table) Next() (p *Player) {
 
 func NewGame(gc *GameController) (g *Game) {
 	g = new(Game)
+	g.gameID = guid(createGuid())
 	g.table = new(Table)
 	g.table.players = make([]*Player, 0)
 	g.pot = new(Pot)

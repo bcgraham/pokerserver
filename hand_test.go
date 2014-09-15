@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 )
@@ -41,7 +40,6 @@ func TestFindWinningHand(t *testing.T) {
 	//no Ties
 	//Run through every 3-hand combination of hands above
 	//Find the winning hands. In each case should be the hand with the lower index in allHands
-	fmt.Println("==== Three player game ====")
 	for i := 0; i < len(allHands)-2; i++ {
 		for q := i + 1; q < len(allHands)-1; q++ {
 			for n := q + 1; n < len(allHands); n++ {
@@ -53,20 +51,15 @@ func TestFindWinningHand(t *testing.T) {
 				if !areHandsEq(winners[0], allHands[i]) {
 					t.Errorf("%v is winner, should be %v",
 						winners[0], allHands[i])
-				} else {
-					fmt.Println(testGame, " --> ", winners)
 				}
 			}
 		}
 	}
 
-	fmt.Println("==== Single player game ====")
 	testGame := append(make([]Hand, 0), allHands[10])
 	winners := findWinningHands(testGame)
 	if len(winners) != 1 && !areHandsEq(winners[0], allHands[10]) {
 		t.Errorf("Incorrect number of winners. Incorrect winner")
-	} else {
-		fmt.Println(testGame, " --> ", winners)
 	}
 
 	//Test Tie manually

@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -43,8 +44,10 @@ func protector(um *UserMap, restricted http.HandlerFunc) http.HandlerFunc {
 		credentials, err := parseAuthHeader(r.Header.Get("Authorization"))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
 		}
 		vars := mux.Vars(r)
+		vars = mux.Vars(r)
 		playerIDstr, ok := vars["PlayerID"]
 		playerID := guid(playerIDstr)
 		username := credentials[0]
@@ -82,14 +85,10 @@ func (re RestExposer) getGames(w http.ResponseWriter, r *http.Request) {
 }
 
 func (re RestExposer) makeGame(w http.ResponseWriter, r *http.Request) {
-	gameID := guid(createGuid())
-	g := NewGame(re.gc)
-	re.gc.Games[gameID] = g
-	g.gameID = gameID
-	go g.run()
+	pg := re.gc.makeGame()
 	enc := json.NewEncoder(w)
 	w.WriteHeader(http.StatusCreated)
-	enc.Encode(gameID)
+	enc.Encode(pg)
 }
 
 func (re RestExposer) getGame(w http.ResponseWriter, r *http.Request) {
@@ -115,15 +114,20 @@ func (re RestExposer) getPlayers(w http.ResponseWriter, r *http.Request) {
 func (re RestExposer) playerJoinGame(um *UserMap) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		g, ok := re.gc.Games[guid(vars["GameID"])]
+		gameID := guid(vars["GameID"])
+		g, ok := re.gc.Games[gameID]
+		if !ok {
+			http.Error(w, fmt.Sprintf("Could not find game: \"%v\"", gameID), http.StatusNotFound)
+			return
+		}
 		credentials, err := parseAuthHeader(r.Header.Get("Authorization"))
 		username := credentials[0]
 		if err != nil {
 			log.Fatalf("playerJoinGame: problem parsing header to get player ID: %v", err)
 		}
 		if !ok {
-			// TODO: handle errors
-			log.Fatalf("playerJoinGame: no such game: %v", vars["GameID"])
+			http.Error(w, fmt.Sprintf("Could not find game: \"%v\"", gameID), http.StatusNotFound)
+			return
 		}
 		p := NewPlayer(um.handles[username])
 		err = g.controller.enqueuePlayer(g, p)
@@ -192,6 +196,9 @@ func (re RestExposer) makeUser(um *UserMap) func(http.ResponseWriter, *http.Requ
 			return
 		}
 		username := credentials[0]
+		if len(username) == 0 {
+			http.Error(w, "Username cannot be zero-length; choose another username.", http.StatusBadRequest)
+		}
 		password := []byte(credentials[1])
 		um.Lock()
 		defer um.Unlock()

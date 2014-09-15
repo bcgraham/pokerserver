@@ -1,23 +1,14 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
-	"net/url"
 )
 
-var username = flag.String("u", "brian", "username to log into poker server with")
-var password = flag.String("p", "password", "username to log into poker server with")
-var host = flag.String("h", "10.0.5.234:8080", "ip:port string")
-
 func main() {
-	flag.Parse()
-	u := url.URL{Scheme: "http", Host: *host}
-	u.Path = "users"
-	r, err := http.NewRequest("POST", u.RequestURI(), nil)
+	r, err := http.NewRequest("POST", "http://10.0.5.234:8080/users/", nil)
 	if err != nil {
 		fmt.Println("error")
 	}
@@ -36,8 +27,7 @@ func main() {
 	fmt.Printf("resp code: %v\n", resp.StatusCode)
 	fmt.Println(string(page[:n]))
 	resp.Body.Close()
-	u.Path = "games"
-	r, err = http.NewRequest("POST", u.RequestURI(), nil)
+	r, err = http.NewRequest("POST", "http://10.0.5.234:8080/games/", nil)
 	if err != nil {
 		fmt.Println("error")
 	}

@@ -45,10 +45,11 @@ type PublicPot struct {
 }
 
 type PublicGame struct {
-	Table PublicTable
-	Turn  *Turn
-	Cards *PublicCards
-	Pots  *PublicPots
+	GameID string
+	Table  PublicTable
+	Turn   *Turn
+	Cards  *PublicCards
+	Pots   *PublicPots
 }
 
 type authenticator map[guid]guid
@@ -64,6 +65,26 @@ func (gc *GameController) getGames() []*Game {
 func (gc *GameController) getGame(game guid) (pg *PublicGame) {
 	g := gc.Games[game]
 	pg = new(PublicGame)
+	pg.Table = make(PublicTable, 0)
+	for _, player := range g.table.players {
+		pg.Table = append(pg.Table, MakePublicPlayer(g, player))
+	}
+	pg.Turn = new(Turn)
+	pg.Turn.BetToPlayer = g.pot.totalToCall
+	pg.Turn.MinRaise = g.pot.minRaise
+	pg.Turn.Player = "" // ??
+	pg.Turn.Expiry = "" // ??
+	pg.Cards = MakePublicCards(g)
+	pg.Pots = MakePublicPots(g)
+	return pg
+}
+
+func (gc *GameController) makeGame() (pg *PublicGame) {
+	g := NewGame(gc)
+	gc.Games[g.gameID] = g
+	go g.run()
+	pg = new(PublicGame)
+	pg.GameID = string(g.gameID)
 	pg.Table = make(PublicTable, 0)
 	for _, player := range g.table.players {
 		pg.Table = append(pg.Table, MakePublicPlayer(g, player))
@@ -241,7 +262,9 @@ func (as *Acts) watchActs(ch chan Act, quit chan struct{}, player guid) {
 	}
 }
 
-func (c *controller) getPlayerBet(g *Game, wanted guid) (int, money, error) {
+func (c *controller) getPlayerBet(g *Game, player guid) (int, money, error) { return 2, money(2), nil }
+
+func (c *controller) getPlayerBet2(g *Game, wanted guid) (int, money, error) {
 	//func (c *controller) getPlayerBet(g *Game, player guid) (int, money, error) { return 2, money(2), nil }
 	timer := time.NewTimer(30 * time.Second)
 	actCh := make(chan Act)
