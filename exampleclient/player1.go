@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	r, err := http.NewRequest("POST", "http://10.0.5.234:8080/users/", nil)
+	r, err := http.NewRequest("POST", "http://10.0.1.2:8080/users/", nil)
 	if err != nil {
 		fmt.Println("error")
 	}
@@ -27,7 +27,7 @@ func main() {
 	fmt.Printf("resp code: %v\n", resp.StatusCode)
 	fmt.Println(string(page[:n]))
 	resp.Body.Close()
-	r, err = http.NewRequest("POST", "http://10.0.5.234:8080/games/", nil)
+	r, err = http.NewRequest("POST", "http://10.0.1.2:8080/games/", nil)
 	if err != nil {
 		fmt.Println("error")
 	}
@@ -46,7 +46,7 @@ func main() {
 	fmt.Printf("resp code: %v\n", resp.StatusCode)
 	fmt.Println(string(page[:n]))
 	resp.Body.Close()
-	r, err = http.NewRequest("POST", "http://10.0.5.234:8080/games/fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a/players/", nil)
+	r, err = http.NewRequest("POST", "http://10.0.1.2:8080/games/fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a/players/", nil)
 	if err != nil {
 		fmt.Println("error")
 	}

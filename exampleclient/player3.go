@@ -12,7 +12,7 @@ func main() {
 	if err != nil {
 		fmt.Println("error")
 	}
-	r.SetBasicAuth("jake", "password")
+	r.SetBasicAuth("gabe", "password")
 	c := http.Client{}
 	resp, err := c.Do(r)
 	if err != nil {
@@ -31,7 +31,7 @@ func main() {
 	if err != nil {
 		fmt.Println("error")
 	}
-	r.SetBasicAuth("jake", "password")
+	r.SetBasicAuth("gabe", "password")
 	c = http.Client{}
 	resp, err = c.Do(r)
 	if err != nil {
