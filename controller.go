@@ -241,47 +241,38 @@ func NewActs() Acts {
 	return *as
 }
 
-func (as *Acts) watchActs(ch chan Act, quit chan struct{}, player guid) {
+func (c *controller) getPlayerBet(g *Game, wanted guid) (int, money, error) {
+	timeout := time.NewTimer(30 * time.Second)
 	ticker := time.NewTicker(500 * time.Millisecond)
+	buf := c.buffer
+
+	//---Testing---
+	fmt.Printf("Asking **%s** for bet. Player has bet **%v**. Total to call is **%v**\n\n",
+		wanted, g.pot.totalPlayerBetThisRound(wanted), g.pot.totalToCall)
+	//-------------
+
 	for {
 		select {
-		case <-quit:
-			ticker.Stop()
-			return
-		case <-ticker.C:
-		}
-		as.Lock()
-		for i := 0; i < len(as.acts); i++ {
-			if as.acts[i].player == player {
-				ch <- as.remove(i)
-				as.Unlock()
-				return
-			}
-		}
-		as.Unlock()
-	}
-}
-
-func (c *controller) getPlayerBet(g *Game, player guid) (int, money, error) { return 2, money(2), nil }
-
-func (c *controller) getPlayerBet2(g *Game, wanted guid) (int, money, error) {
-	//func (c *controller) getPlayerBet(g *Game, player guid) (int, money, error) { return 2, money(2), nil }
-	timer := time.NewTimer(30 * time.Second)
-	actCh := make(chan Act)
-	quit := make(chan struct{})
-	var a Act
-	go c.buffer.watchActs(actCh, quit, wanted)
-ForSelect:
-	for {
-		select {
-		case <-timer.C:
-			quit <- struct{}{}
+		case <-timeout.C:
 			return 0, 0, fmt.Errorf("controller: timed out waiting for bet from player %v", wanted)
-		case a = <-actCh:
-			break ForSelect
+		case <-ticker.C:
+			buf.Lock()
+			for i := 0; i < len(buf.acts); i++ {
+				if buf.acts[i].player == wanted {
+					a := buf.remove(i)
+					buf.Unlock()
+					//---Testing---
+					fmt.Printf("Got an action: **%s**, of amount: **%v**\n\n",
+						a.action, a.betAmount)
+					//-------------
+					return a.action, a.betAmount, nil
+				}
+			}
+			buf.Unlock()
 		}
 	}
-	return a.action, a.betAmount, nil
+
+	panic("Unreachable")
 }
 
 func (c *controller) registerPlayerAct(a Act) error {

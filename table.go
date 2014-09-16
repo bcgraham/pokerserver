@@ -23,12 +23,11 @@ func (t *Table) addPlayer(p guid) (err error) {
 }
 
 func (t *Table) AdvanceButton() {
-	n := len(t.players)
-	last := t.players[0]
-	for i := 0; i < (len(t.players) - 1); i++ {
-		t.players[i] = t.players[i+1]
+	tmp := t.players[len(t.players)-1]
+	for i := len(t.players) - 1; i > 0; i-- {
+		t.players[i] = t.players[i-1]
 	}
-	t.players[n-1] = last
+	t.players[0] = tmp
 }
 
 func (t *Table) ResetRoundPlayerState() {
@@ -82,18 +81,19 @@ func (t *Table) getPlayers(guids []guid) []*Player {
 // her best hand from the current deal.
 func (t *Table) assignBestHands(deck Deck) {
 	for _, p := range t.players {
-		allHands := generateAllHands(deck, p)
+		allHands := generateAllHands(deck, p.guid)
 		p.bestHand = bestHand(allHands)
 	}
 }
 
 // bestHand returns the best Hand from a slice of Hands.
 func bestHand(hands []Hand) Hand {
-	return findWinningHands(allHands)[0]
+	return findWinningHands(hands)[0]
 }
 
 func NewGame(gc *GameController) (g *Game) {
 	g = new(Game)
+	g.gameID = guid(createGuid())
 	g.table = new(Table)
 	g.table.players = make([]*Player, 0)
 	g.pot = new(Pot)

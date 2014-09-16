@@ -1,15 +1,18 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"sort"
+)
 
 type Deck map[string]string
 
 //generateAllHands returns all possible five-card hands from the
 //five table cards and two hole cards.
-func generateAllHands(deck Deck, p Player) []Hand {
+func generateAllHands(deck Deck, playerID guid) []Hand {
 	allCards := make([]string, 0)
 	for card, location := range deck {
-		if location == string(p.guid) || location == "FLOP" || location == "TURN" || location == "RIVER" {
+		if location == string(playerID) || location == "FLOP" || location == "TURN" || location == "RIVER" {
 			allCards = append(allCards, card)
 		}
 	}
@@ -36,4 +39,23 @@ func nChooseK(allCards []string, k int) []Hand {
 	}
 
 	return allHands
+}
+
+func (d Deck) String() string {
+	ordered := make([]string, 0)
+	for card, location := range d {
+		if len(location) > 5 {
+			location = string(location[:5])
+		}
+		ordered = append(ordered, location+":"+card)
+	}
+	sort.Strings(ordered)
+	s := "map[\n"
+	for _, card := range ordered {
+		s += "  "
+		s += card
+		s += "\n"
+	}
+	s += "]"
+	return s
 }

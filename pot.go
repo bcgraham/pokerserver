@@ -1,3 +1,5 @@
+package main
+
 import "math"
 
 //===============POT AND BET============
@@ -105,11 +107,11 @@ func (pot *Pot) totalInPot() money {
 	return sum
 }
 
-func (pot *Pot) totalPlayerBetThisRound(g guid) money {
+func (pot *Pot) totalPlayerBetThisRound(p guid) money {
 	sum := money(0)
-	for _, m := range pot.bets {
-		if m.player == g && m.potNumber == pot.potNumber {
-			sum += m.value
+	for _, bet := range pot.bets {
+		if bet.player == p && bet.potNumber == pot.potNumber {
+			sum += bet.value
 		}
 	}
 	return sum
@@ -117,7 +119,7 @@ func (pot *Pot) totalPlayerBetThisRound(g guid) money {
 
 // stakeholders returns a map of sidepots to players who have bet in each sidepot.
 func (pot *Pot) stakeholders() map[uint][]guid {
-	stakeholders = make(map[uint][]guid)
+	stakeholders := make(map[uint][]guid)
 	for _, bet := range pot.bets {
 		if _, ok := stakeholders[bet.potNumber]; !ok {
 			stakeholders[bet.potNumber] = make([]guid, 0)
@@ -129,9 +131,9 @@ func (pot *Pot) stakeholders() map[uint][]guid {
 
 // amounts returns a map of sidepots to amounts.
 func (pot *Pot) amounts() map[uint]money {
-	amounts = make(map[uint]money)
+	amounts := make(map[uint]money)
 	for _, bet := range pot.bets {
 		amounts[bet.potNumber] += bet.value
 	}
-	return stakeholders, amounts
+	return amounts
 }

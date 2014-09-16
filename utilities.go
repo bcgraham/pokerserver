@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
+	"strconv"
 )
 
 func gamePrinter(g *Game) {
@@ -34,7 +36,7 @@ func gamePrinter(g *Game) {
 	for _, bet := range g.pot.bets {
 		fmt.Fprintf(f, "  [%v | %v | %v]\n", bet.potNumber, bet.player, bet.value)
 	}
-	fmt.Fprint(f, "\n\n\n")
+	fmt.Fprint(f, "\n\n")
 }
 
 func createGuid() string {
@@ -84,23 +86,4 @@ func (t *Table) remove(id guid) {
 	} else {
 		t.players = append(t.players[:index], t.players[index+1:]...)
 	}
-}
-
-func (d Deck) String() string {
-	ordered := make([]string, 0)
-	for card, location := range d {
-		if len(location) > 5 {
-			location = string(location[:5])
-		}
-		ordered = append(ordered, location+":"+card)
-	}
-	ordered = sort.StringSlice(ordered)
-	s := "map[\n"
-	for _, card := range ordered {
-		s += "  "
-		s += card
-		s += "\n"
-	}
-	s += "\n"
-	return s
 }

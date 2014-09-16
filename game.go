@@ -3,7 +3,6 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"math/rand"
 	"os"
 )
@@ -12,7 +11,6 @@ import (
 //===============TYPES AND CONSTS==============
 //=============================================
 type roundName int
-type Deck map[string]string
 type state int
 type money uint64
 type guid string
@@ -33,10 +31,10 @@ const (
 const BUY_IN money = 500
 
 type Player struct {
-	state		state
-	guid		guid
-	wealth		money
-	bestHand	Hand
+	state    state
+	guid     guid
+	wealth   money
+	bestHand Hand
 }
 
 //==========================================
@@ -83,50 +81,43 @@ func (g *Game) run() {
 	defer gamePrinter(g)
 	reader := bufio.NewReader(os.Stdin)
 	//----
-
+	println(">Game Started")
 	for {
-		_, _ = reader.ReadString('\n')
 		g.addWaitingPlayersToGame()
 		if len(g.table.players) < 2 {
 			continue //Need 2 players to start a hand
 		}
+		g.table.AdvanceButton()
 		g.pot = newPot()
 		g.removeBrokePlayers()
 		g.betBlinds()
 		g.deal()
-		for g.round := 0; !g.allFolded() && g.round < 4; g.round++ {
-			println("beforebet>")
-			_, _ = reader.ReadString('\n')
-			gamePrinter(g)
-			g.Bets()
-			g.table.ResetRound()
-			println("afterbet>")
-			_, _ = reader.ReadString('\n')
-			gamePrinter(g)
-			g.pot.newRound()
-			println("afternewround>")
-			_, _ = reader.ReadString('\n')
-			gamePrinter(g)
-		}
-		g.resolveBets()
-		println("afterresolvebets>")
+		println("beforehand>")
 		_, _ = reader.ReadString('\n')
 		gamePrinter(g)
-		g.table.AdvanceButton()
+		for g.round = 0; !g.allFolded() && g.round < 4; g.round++ {
+			g.Bets()
+			g.table.ResetRound()
+			g.pot.newRound()
+		}
+		g.resolveBets()
+		println("afterhand>")
+		_, _ = reader.ReadString('\n')
+		gamePrinter(g)
 		g.table.ResetHand()
 	}
 }
 
-// resolveBets loops through all sidepots. For each sidepot, 
+// resolveBets loops through all sidepots. For each sidepot,
 // among the stakeholders, the pot is distributed to the winner(s).
 func (g *Game) resolveBets() {
 	moneyInPots := g.pot.amounts()
 
-	for potNumber, guids := range g.pots.stakeholders() {
-		sidepot = moneyInPots[potNumber]
-		numWinners = money(len(winners))
-		players = g.table.getPlayers(guids)
+	for potNumber, guids := range g.pot.stakeholders() {
+		sidepot := moneyInPots[potNumber]
+		players := g.table.getPlayers(guids)
 		winners := findWinners(players)
+		numWinners := money(len(winners))
 		for _, p := range winners {
 			p.wealth += sidepot / numWinners
 			if sidepot%numWinners > 0 {
@@ -215,6 +206,7 @@ func (g *Game) Bets() {
 		}
 
 		action, betAmount, err := g.controller.getPlayerBet(g, player.guid)
+
 		//Illegit bets
 		if err != nil {
 			//Err occurs on connection timeout
