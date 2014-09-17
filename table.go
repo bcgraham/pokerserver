@@ -94,6 +94,7 @@ func bestHand(hands []Hand) Hand {
 func NewGame(gc *GameController) (g *Game) {
 	g = new(Game)
 	g.gameID = guid(createGuid())
+	fmt.Println(g.gameID)
 	g.table = new(Table)
 	g.table.players = make([]*Player, 0)
 	g.pot = new(Pot)

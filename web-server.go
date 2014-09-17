@@ -77,11 +77,16 @@ func protector(um *UserMap, restricted http.HandlerFunc) http.HandlerFunc {
 
 func (re RestExposer) getGames(w http.ResponseWriter, r *http.Request) {
 	enc := json.NewEncoder(w)
-	gs := make([]*Game, 0)
+	pgs := make([]*PublicGame, 0)
 	for _, g := range re.gc.Games {
-		gs = append(gs, g)
+		pg := re.gc.getGame(g.gameID)
+		pgs = append(pgs, pg)
 	}
-	enc.Encode(gs)
+	fmt.Println()
+	err := enc.Encode(&pgs)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 func (re RestExposer) makeGame(w http.ResponseWriter, r *http.Request) {

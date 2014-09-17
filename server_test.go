@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -319,4 +320,15 @@ func TestTwoPlayersJoinGame(t *testing.T) {
 	if w.Code != http.StatusCreated {
 		t.Errorf("player joining game correctly; got %v, expected %v", w.Code, http.StatusCreated)
 	}
+}
+
+func TestGetGames(t *testing.T) {
+	re, UserMap := defaultRE(), NewUserMap()
+	w, req := WAndReq("POST", "users", "brian", "password")
+	re.makeUser(UserMap)(w, req)
+	w, req = WAndReq("POST", "games", "brian", "password")
+	protector(UserMap, re.makeGame)(w, req)
+	re.getGames(w, req)
+	fmt.Println("getting games...")
+	fmt.Println(w.Body.String())
 }

@@ -65,6 +65,7 @@ func (gc *GameController) getGames() []*Game {
 func (gc *GameController) getGame(game guid) (pg *PublicGame) {
 	g := gc.Games[game]
 	pg = new(PublicGame)
+	pg.GameID = string(game)
 	pg.Table = make(PublicTable, 0)
 	for _, player := range g.table.players {
 		pg.Table = append(pg.Table, MakePublicPlayer(g, player))
