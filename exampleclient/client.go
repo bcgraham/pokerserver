@@ -26,7 +26,7 @@ func init() {
 		log.Fatalf("Could not start game: %v")
 	}
 	req.SetBasicAuth(*user, *pass)
-	resp, err := (&http.Client{}).Do(req)
+	resp, err := (&http.{}).Do(req)
 	if err != nil {
 		log.Fatalf("Could not start game: %v")
 	}
@@ -168,7 +168,7 @@ func (g *Game) join() error {
 		return err
 	}
 	req.SetBasicAuth(g.user, g.pass)
-	resp, err := (&http.Client{}).Do(req)
+	resp, err := (&http.{}).Do(req)
 	raw := make([]byte, 1024)
 	n, err := resp.Body.Read(raw)
 	if err != nil && err != io.EOF {
@@ -189,7 +189,7 @@ func (g *Game) make() error {
 		return err
 	}
 	req.SetBasicAuth(g.user, g.pass)
-	resp, err := (&http.Client{}).Do(req)
+	resp, err := (&http.{}).Do(req)
 	var madeGame interface{}
 	dec := json.NewDecoder(resp.Body)
 	err = dec.Decode(&madeGame)

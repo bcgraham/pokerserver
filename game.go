@@ -3,6 +3,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"math/rand"
 	"os"
 )
@@ -165,17 +166,17 @@ func (g *Game) betBlinds() {
 	//Bet small blind
 	player := g.table.Next()
 	if player.wealth >= g.smallBlind {
-		g.commitBet(player, g.smallBlind)
+		g.pot.commitBet(player, g.smallBlind)
 	} else {
-		g.commitBet(player, player.wealth)
+		g.pot.commitBet(player, player.wealth)
 	}
 
 	//Bet big blind
 	player = g.table.Next()
 	if player.wealth >= 2*g.smallBlind {
-		g.commitBet(player, 2*g.smallBlind)
+		g.pot.commitBet(player, 2*g.smallBlind)
 	} else {
-		g.commitBet(player, player.wealth)
+		g.pot.commitBet(player, player.wealth)
 	}
 }
 
@@ -204,7 +205,8 @@ func (g *Game) Bets() {
 		if player.state != active {
 			continue
 		}
-
+		fmt.Printf("asking %v for bet>\n", player.guid)
+		gamePrinter(g)
 		action, betAmount, err := g.controller.getPlayerBet(g, player.guid)
 
 		//Illegit bets
@@ -218,33 +220,19 @@ func (g *Game) Bets() {
 			player.state = folded
 			continue
 		}
-		if g.betInvalid(player, betAmount) {
+		if g.pot.betInvalid(player, betAmount) {
+			fmt.Printf("player %v has bet an invalid amount of %v; defaulting to fold...\n", player.guid, betAmount)
 			g.controller.registerInvalidBet(g, player.guid, betAmount)
 			player.state = folded
 			continue
 		}
 
 		//Legit bets
-		isRaising := (g.pot.totalPlayerBetThisRound(player.guid) + betAmount) > g.pot.totalToCall
-		if isRaising {
+		if g.pot.raiseAmount(player.guid, betAmount) > 0 {
 			g.table.ResetRoundPlayerState()
 		}
-		g.commitBet(player, betAmount)
+		g.pot.commitBet(player, betAmount)
 		player.state = called
 	}
 
-}
-
-func (g *Game) betInvalid(player *Player, bet money) bool {
-	return (bet > player.wealth) ||
-		(bet < g.pot.minRaise) ||
-		(bet < player.wealth && (g.pot.totalPlayerBetThisRound(player.guid)+bet) < g.pot.totalToCall)
-}
-
-func (g *Game) commitBet(player *Player, amount money) {
-	if amount <= 0 {
-		panic("trying to bet <= 0")
-	}
-	g.pot.receiveBet(player.guid, amount)
-	player.wealth -= amount
 }

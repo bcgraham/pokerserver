@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"os"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -186,10 +189,10 @@ func NewGameController() (gc *GameController) {
 }
 
 type controller struct {
-	toGame   chan Act
-	fromGame chan int // ???
-	buffer   Acts
-	waiting  []*Player
+	toGame     chan Act
+	fromGame   chan int // ???
+	queuedActs Acts
+	waiting    []*Player
 	sync.Mutex
 }
 
@@ -245,7 +248,7 @@ func NewActs() Acts {
 func (c *controller) getPlayerBet(g *Game, wanted guid) (int, money, error) {
 	timeout := time.NewTimer(30 * time.Second)
 	ticker := time.NewTicker(500 * time.Millisecond)
-	buf := c.buffer
+	queue := c.queuedActs
 
 	//---Testing---
 	fmt.Printf("Asking **%s** for bet. Player has bet **%v**. Total to call is **%v**\n\n",
@@ -257,11 +260,28 @@ func (c *controller) getPlayerBet(g *Game, wanted guid) (int, money, error) {
 		case <-timeout.C:
 			return 0, 0, fmt.Errorf("controller: timed out waiting for bet from player %v", wanted)
 		case <-ticker.C:
-			buf.Lock()
-			for i := 0; i < len(buf.acts); i++ {
-				if buf.acts[i].player == wanted {
-					a := buf.remove(i)
-					buf.Unlock()
+			input := make([]byte, 1024)
+			fmt.Println(">>place your bet...")
+			n, err := os.Stdin.Read(input)
+			if err != nil && err != io.EOF {
+				panicMsg := "Error reading from standard in: " + fmt.Sprint(err)
+				panic(panicMsg)
+			}
+			fmt.Println(input[:n-1])
+			inputstr := string(input[:n-1])
+			i, err := strconv.Atoi(inputstr)
+			if err != nil {
+				continue
+			}
+			if i < 0 {
+				return fold, 0, nil
+			}
+			return call, money(i), nil
+			queue.Lock()
+			for i := 0; i < len(queue.acts); i++ {
+				if queue.acts[i].player == wanted {
+					a := queue.remove(i)
+					queue.Unlock()
 					//---Testing---
 					fmt.Printf("Got an action: **%s**, of amount: **%v**\n\n",
 						a.action, a.betAmount)
@@ -269,7 +289,7 @@ func (c *controller) getPlayerBet(g *Game, wanted guid) (int, money, error) {
 					return a.action, a.betAmount, nil
 				}
 			}
-			buf.Unlock()
+			queue.Unlock()
 		}
 	}
 
@@ -277,7 +297,7 @@ func (c *controller) getPlayerBet(g *Game, wanted guid) (int, money, error) {
 }
 
 func (c *controller) registerPlayerAct(a Act) error {
-	as := c.buffer
+	as := c.queuedActs
 	as.Lock()
 	defer as.Unlock()
 	for i := 0; i < len(as.acts); i++ {
@@ -307,18 +327,30 @@ func NewController() *controller {
 	c := new(controller)
 	c.toGame = make(chan Act)
 	c.fromGame = make(chan int)
-	c.buffer = NewActs()
+	c.queuedActs = NewActs()
 	c.waiting = make([]*Player, 0)
 	return c
 }
 
 func (c *controller) registerInvalidBet(g *Game, player guid, bet money) { return }
 func (c *controller) removePlayerFromGame(g *Game, player guid) {
-	as := c.buffer
+	as := c.queuedActs
+	replacementActs := Acts{}
+	replacementActs.acts = make([]Act, 0)
+	as.Lock()
+	defer as.Unlock()
 	for i := 0; i < len(as.acts); i++ {
-		if as.acts[i].player == player {
-			as.remove(i)
+		if as.acts[i].player != player {
+			replacementActs.acts = append(replacementActs.acts, as.acts[i])
 		}
 	}
+	c.queuedActs = replacementActs
+	replacementPlayers := make([]*Player, 0)
+	for i := 0; i < len(g.table.players); i++ {
+		if g.table.players[i].guid != player {
+			replacementPlayers = append(replacementPlayers, g.table.players[i])
+		}
+	}
+	g.table.players = replacementPlayers
 	return
 }

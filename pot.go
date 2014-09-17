@@ -1,6 +1,9 @@
 package main
 
-import "math"
+import (
+	"fmt"
+	"math"
+)
 
 //===============POT AND BET============
 //======================================
@@ -24,6 +27,7 @@ func (pot *Pot) newRound() {
 	pot.makeSidePots()
 	pot.minRaise = 0
 	pot.totalToCall = 0
+	pot.potNumber++
 }
 
 func (pot *Pot) condenseBets() {
@@ -86,31 +90,32 @@ func (pot *Pot) makeSidePots() {
 	pot.makeSidePots()
 }
 
-func (pot *Pot) receiveBet(guid guid, bet money) {
-	newBet := Bet{potNumber: pot.potNumber, player: guid, value: bet}
-	pot.bets = append(pot.bets, newBet)
-	totalBet := pot.totalPlayerBetThisRound(guid)
-	if totalBet > pot.totalToCall {
-		pot.totalToCall = totalBet
+func (p *Pot) receiveBet(id guid, bet money) {
+	betSoFar := p.totalPlayerBetThisRound(id)
+	raise := p.raiseAmount(id, bet)
+	if betSoFar+bet > p.totalToCall {
+		p.totalToCall = betSoFar + bet
 	}
-	raise := totalBet - pot.totalToCall
-	if raise > pot.minRaise {
-		pot.minRaise = 2 * raise
+	fmt.Printf("Receiving bet: player %v has bet amount %v, bringing her total bet to %v (raise amount %v)\n", id, bet, betSoFar, raise)
+	if raise > p.minRaise {
+		p.minRaise = raise
 	}
+	newBet := Bet{potNumber: p.potNumber, player: id, value: bet}
+	p.bets = append(p.bets, newBet)
 }
 
-func (pot *Pot) totalInPot() money {
+func (p *Pot) totalInPot() money {
 	var sum money = 0
-	for _, m := range pot.bets {
+	for _, m := range p.bets {
 		sum += m.value
 	}
 	return sum
 }
 
-func (pot *Pot) totalPlayerBetThisRound(p guid) money {
+func (p *Pot) totalPlayerBetThisRound(id guid) money {
 	sum := money(0)
-	for _, bet := range pot.bets {
-		if bet.player == p && bet.potNumber == pot.potNumber {
+	for _, bet := range p.bets {
+		if bet.player == id && bet.potNumber == p.potNumber {
 			sum += bet.value
 		}
 	}
@@ -118,9 +123,9 @@ func (pot *Pot) totalPlayerBetThisRound(p guid) money {
 }
 
 // stakeholders returns a map of sidepots to players who have bet in each sidepot.
-func (pot *Pot) stakeholders() map[uint][]guid {
+func (p *Pot) stakeholders() map[uint][]guid {
 	stakeholders := make(map[uint][]guid)
-	for _, bet := range pot.bets {
+	for _, bet := range p.bets {
 		if _, ok := stakeholders[bet.potNumber]; !ok {
 			stakeholders[bet.potNumber] = make([]guid, 0)
 		}
@@ -130,10 +135,32 @@ func (pot *Pot) stakeholders() map[uint][]guid {
 }
 
 // amounts returns a map of sidepots to amounts.
-func (pot *Pot) amounts() map[uint]money {
+func (p *Pot) amounts() map[uint]money {
 	amounts := make(map[uint]money)
-	for _, bet := range pot.bets {
+	for _, bet := range p.bets {
 		amounts[bet.potNumber] += bet.value
 	}
 	return amounts
+}
+
+// commitBet decrements player wealth by bet and adds bet to the current pot.
+func (p *Pot) commitBet(player *Player, bet money) {
+	if bet < 0 {
+		panic("trying to bet < 0")
+	}
+	p.receiveBet(player.guid, bet)
+	player.wealth -= bet
+}
+
+// betInvalid returns true if the bet is a valid bet, and false if the bet is not valid.
+func (p *Pot) betInvalid(player *Player, bet money) bool {
+	raise := p.raiseAmount(player.guid, bet)
+	return (bet > player.wealth) ||
+		(raise > 0 && raise < p.minRaise) ||
+		(bet < player.wealth && (p.totalPlayerBetThisRound(player.guid)+bet) < p.totalToCall)
+}
+
+// raiseAmount returns the amount the current bet is raising (possibly 0).
+func (p *Pot) raiseAmount(id guid, betAmount money) money {
+	return p.totalPlayerBetThisRound(id) + betAmount - p.totalToCall
 }
