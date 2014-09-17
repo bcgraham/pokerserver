@@ -70,7 +70,7 @@ func (gc *GameController) getGame(game guid) (pg *PublicGame) {
 	pg = new(PublicGame)
 	pg.GameID = string(game)
 	pg.Table = make(PublicTable, 0)
-	for _, player := range g.table.players {
+	for _, player := range g.table {
 		pg.Table = append(pg.Table, MakePublicPlayer(g, player))
 	}
 	pg.Turn = new(Turn)
@@ -90,7 +90,7 @@ func (gc *GameController) makeGame() (pg *PublicGame) {
 	pg = new(PublicGame)
 	pg.GameID = string(g.gameID)
 	pg.Table = make(PublicTable, 0)
-	for _, player := range g.table.players {
+	for _, player := range g.table {
 		pg.Table = append(pg.Table, MakePublicPlayer(g, player))
 	}
 	pg.Turn = new(Turn)
@@ -151,7 +151,7 @@ func MakePublicPlayer(g *Game, p *Player) (pp *PublicPlayer) {
 	default:
 		panic("unknown state")
 	}
-	if g.table.players[0] == p {
+	if g.table[0] == p {
 		pp.SmallBlind = true
 	}
 	return pp
@@ -219,7 +219,7 @@ func (c *controller) enqueuePlayer(g *Game, p *Player) error {
 			return fmt.Errorf("controller: player %v is already queued to join table")
 		}
 	}
-	for _, player := range g.table.players {
+	for _, player := range g.table {
 		if player.guid == p.guid {
 			return fmt.Errorf("controller: player %v is already sitting at the table", p.guid)
 		}
@@ -346,11 +346,11 @@ func (c *controller) removePlayerFromGame(g *Game, player guid) {
 	}
 	c.queuedActs = replacementActs
 	replacementPlayers := make([]*Player, 0)
-	for i := 0; i < len(g.table.players); i++ {
-		if g.table.players[i].guid != player {
-			replacementPlayers = append(replacementPlayers, g.table.players[i])
+	for i := 0; i < len(g.table); i++ {
+		if g.table[i].guid != player {
+			replacementPlayers = append(replacementPlayers, g.table[i])
 		}
 	}
-	g.table.players = replacementPlayers
+	g.table = replacementPlayers
 	return
 }

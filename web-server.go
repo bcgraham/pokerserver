@@ -113,7 +113,7 @@ func (re RestExposer) getPlayers(w http.ResponseWriter, r *http.Request) {
 		log.Fatalf("no such game: %v", vars["GameID"])
 	}
 	enc := json.NewEncoder(w)
-	enc.Encode(g.table.players)
+	enc.Encode(g.table)
 }
 
 func (re RestExposer) playerJoinGame(um *UserMap) func(http.ResponseWriter, *http.Request) {

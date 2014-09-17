@@ -26,7 +26,3 @@ func TestS4(t *testing.T) {
 		}
 	}
 }
-
-func TestDeal(t *testing.T) {
-
-}

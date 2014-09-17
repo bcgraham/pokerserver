@@ -5,19 +5,23 @@ import (
 	"math"
 )
 
-//===============POT AND BET============
-//======================================
 type Pot struct {
 	minRaise    money
 	totalToCall money
 	potNumber   uint
 	bets        []Bet
 }
-
 type Bet struct {
 	potNumber uint
 	player    guid
 	value     money
+}
+
+//newPot is a constructor for a new Pot struct
+func newPot() *Pot {
+	pot := new(Pot)
+	pot.bets = make([]Bet, 0)
+	return pot
 }
 
 //Resolves partial pots from previous round

@@ -5,66 +5,47 @@ import (
 	"math/rand"
 )
 
-type Table struct {
-	players []*Player
-	index   int
-}
+type Table []*Player
 
-func (t *Table) addPlayer(p guid) (err error) {
+func (t Table) addPlayer(p guid) (err error) {
 	var newPlayer *Player = &Player{state: active, guid: p, wealth: 1000}
-	if len(t.players) >= 10 {
+	if len(t) >= 10 {
 		err = fmt.Errorf("Table full!")
 		return err
 	}
 
-	t.players = append(t.players, newPlayer)
+	t = append(t, newPlayer)
 	return err
 
 }
 
-func (t *Table) AdvanceButton() {
-	tmp := t.players[len(t.players)-1]
-	for i := len(t.players) - 1; i > 0; i-- {
-		t.players[i] = t.players[i-1]
+func (t Table) AdvanceButton() {
+	tmp := t[len(t)-1]
+	for i := len(t) - 1; i > 0; i-- {
+		t[i] = t[i-1]
 	}
-	t.players[0] = tmp
+	t[0] = tmp
 }
 
-func (t *Table) ResetRoundPlayerState() {
-	for _, p := range t.players {
+func (t Table) makeCalledPlayersActive() {
+	for _, p := range t {
 		if p.state == called {
 			p.state = active
 		}
 	}
 }
 
-func (t *Table) ResetHandPlayerState() {
-	for _, p := range t.players {
+func (t Table) makeAllPlayersActive() {
+	for _, p := range t {
 		p.state = active
 	}
 }
 
-func (t *Table) ResetRound() {
-	t.index = 0
-	t.ResetRoundPlayerState()
-}
-
-func (t *Table) ResetHand() {
-	t.index = 0
-	t.ResetHandPlayerState()
-}
-
-func (t *Table) Next() (p *Player) {
-	p = t.players[t.index]
-	t.index = (t.index + 1) % len(t.players)
-	return p
-}
-
 // TODO: need map[guid]player at table level to avoid
 // messy n^2 lookup time
-func (t *Table) getPlayers(guids []guid) []*Player {
+func (t Table) getPlayers(guids []guid) []*Player {
 	players := make([]*Player, 0)
-	for _, p := range t.players {
+	for _, p := range t {
 		for _, g := range guids {
 			if p.guid == g {
 				players = append(players, p)
@@ -79,8 +60,8 @@ func (t *Table) getPlayers(guids []guid) []*Player {
 
 // assignBestHands assigns to each player
 // her best hand from the current deal.
-func (t *Table) assignBestHands(deck Deck) {
-	for _, p := range t.players {
+func (t Table) assignBestHands(deck Deck) {
+	for _, p := range t {
 		allHands := generateAllHands(deck, p.guid)
 		p.bestHand = bestHand(allHands)
 	}
@@ -95,12 +76,34 @@ func NewGame(gc *GameController) (g *Game) {
 	g = new(Game)
 	g.gameID = guid(createGuid())
 	fmt.Println(g.gameID)
-	g.table = new(Table)
-	g.table.players = make([]*Player, 0)
+	g.table = make(Table, 0)
 	g.pot = new(Pot)
 	g.pot.bets = make([]Bet, 0)
 	g.controller = NewController()
 	g.smallBlind = 10
 	g.random = rand.New(rand.NewSource(SEED))
 	return g
+}
+
+func (t Table) contains(id guid) bool {
+	for _, player := range t {
+		if player.guid == id {
+			return true
+		}
+	}
+	return false
+}
+
+func (t Table) remove(id guid) {
+	var index int
+	for i, player := range t {
+		if player.guid == id {
+			index = i
+		}
+	}
+	if index == len(t)-1 {
+		t = t[:index]
+	} else {
+		t = append(t[:index], t[index+1:]...)
+	}
 }
