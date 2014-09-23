@@ -24,12 +24,12 @@ func init() {
 	flag.Parse()
 	req, err := http.NewRequest("POST", u.String(), nil)
 	if err != nil {
-		log.Fatalf("Could not start game: %v")
+		log.Fatalf("Could not start game: %v", err)
 	}
 	req.SetBasicAuth(*user, *pass)
 	resp, err := (&http.Client{}).Do(req)
 	if err != nil {
-		log.Fatalf("Could not start game: %v")
+		log.Fatalf("Could not start game: %v", err)
 	}
 	if resp.StatusCode != http.StatusCreated {
 		log.Fatalf("Could not create user: %v", resp.Status)
