@@ -1,20 +1,17 @@
 package main
 
-import (
-	"fmt"
-	"math/rand"
-)
+import "fmt"
 
 type Table []*Player
 
-func (t Table) addPlayer(p guid) (err error) {
+func (t *Table) addPlayer(p guid) (err error) {
 	var newPlayer *Player = &Player{state: active, guid: p, wealth: 1000}
-	if len(t) >= 10 {
+	if len(*t) >= 10 {
 		err = fmt.Errorf("Table full!")
 		return err
 	}
 
-	t = append(t, newPlayer)
+	*t = append(*t, newPlayer)
 	return err
 
 }
@@ -52,9 +49,6 @@ func (t Table) getPlayers(guids []guid) []*Player {
 			}
 		}
 	}
-	if len(players) != len(guids) {
-		panic("table.getPlayers is returning a list of players of different length than the length of its input guids")
-	}
 	return players
 }
 
@@ -70,19 +64,6 @@ func (t Table) assignBestHands(deck Deck) {
 // bestHand returns the best Hand from a slice of Hands.
 func bestHand(hands []Hand) Hand {
 	return findWinningHands(hands)[0]
-}
-
-func NewGame(gc *GameController) (g *Game) {
-	g = new(Game)
-	g.gameID = guid(createGuid())
-	fmt.Println(g.gameID)
-	g.table = make(Table, 0)
-	g.pot = new(Pot)
-	g.pot.bets = make([]Bet, 0)
-	g.controller = NewController()
-	g.smallBlind = 10
-	g.random = rand.New(rand.NewSource(SEED))
-	return g
 }
 
 func (t Table) contains(id guid) bool {

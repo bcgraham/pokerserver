@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -9,7 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -26,7 +27,7 @@ func init() {
 		log.Fatalf("Could not start game: %v")
 	}
 	req.SetBasicAuth(*user, *pass)
-	resp, err := (&http.{}).Do(req)
+	resp, err := (&http.Client{}).Do(req)
 	if err != nil {
 		log.Fatalf("Could not start game: %v")
 	}
@@ -50,26 +51,35 @@ func main() {
 		input := strings.Fields(sanitize(buf[:n]))
 		act, args := input[0], input[1:]
 		switch act {
-		case "call":
-			cmd := exec.Command("goecho", strings.Join(args, " "))
-			output, err := cmd.CombinedOutput()
-			if err != nil {
-				panic(err)
+		case "bet":
+			if len(args) == 0 {
+				fmt.Println("Invalid input; need an amount to bet.")
 			}
-			fmt.Println(string(output[:len(output)-1]))
-		case "raise":
-			fmt.Println("calling raise...")
-			cmd := exec.Command("goecho", "raise")
-			err := cmd.Run()
+			bet, err := strconv.Atoi(args[0])
 			if err != nil {
-				panic(err)
+				fmt.Printf("Invalid input; could not parse %v as a number.\n", args[0])
+			}
+			if err := game.bet(bet); err != nil {
+				fmt.Printf("Could not make bet: got error: %v\n", err)
+			}
+		case "call":
+			if err := game.call(); err != nil {
+				fmt.Printf("Could not make bet: got error: %v\n", err)
+			}
+		case "raise by":
+			if len(args) == 0 {
+				fmt.Println("Invalid input; need an amount to bet.")
+			}
+			bet, err := strconv.Atoi(args[0])
+			if err != nil {
+				fmt.Printf("Invalid input; could not parse %v as a number.\n", args[0])
+			}
+			if err := game.raiseBy(bet); err != nil {
+				fmt.Printf("Could not make bet: got error: %v\n", err)
 			}
 		case "fold":
-			fmt.Println("calling fold...")
-			cmd := exec.Command("goecho", "fold")
-			err := cmd.Run()
-			if err != nil {
-				panic(err)
+			if err := game.fold(); err != nil {
+				fmt.Printf("Could not make bet: got error: %v\n", err)
 			}
 		}
 	}
@@ -77,22 +87,25 @@ func main() {
 
 type Turn struct {
 	Player      string `json:"player"`
+	PlayerBet   int    `json:"player bet so far"`
 	BetToPlayer int    `json:"bet to the player"`
 	MinRaise    int    `json:"minimum raise"`
 	Expiry      string `json:"expiry"`
 }
 
 type Act struct {
-	player    string
-	action    int
-	betAmount int
+	Player    string
+	Action    int
+	BetAmount int
 }
 
 type Game struct {
+	turn     *Turn
 	user     string
 	pass     string
 	gameID   string
 	playerID string
+	betSoFar int
 	url      url.URL
 }
 
@@ -110,6 +123,7 @@ func joinAnyGame(host string) (*Game, error) {
 				return &Game{}, err
 			}
 			if len(gameList) > 0 && len(gameList[0]) > 0 {
+				fmt.Println(gameList)
 				var gameID string
 				for key, _ := range gameList[0] {
 					if key == "GameID" {
@@ -118,12 +132,17 @@ func joinAnyGame(host string) (*Game, error) {
 					}
 				}
 				u.Path = ""
-				turn := Turn{}
+				turn := &Turn{}
+				fmt.Println(gameList[0]["Turn"].(map[string]interface{}))
 				serverTurn := gameList[0]["Turn"].(map[string]interface{})
 				turn.Player = serverTurn["player"].(string)
+				fmt.Println(serverTurn["player"].(string))
+				turn.PlayerBet = int(serverTurn["player bet so far"].(float64))
 				turn.BetToPlayer = int(serverTurn["bet to the player"].(float64))
 				turn.MinRaise = int(serverTurn["minimum raise"].(float64))
 				turn.Expiry = serverTurn["expiry"].(string)
+				fmt.Println("turn in turn set = ", turn)
+				game.turn = turn
 				game.gameID = gameID
 				err := game.join()
 				if err != nil {
@@ -136,7 +155,8 @@ func joinAnyGame(host string) (*Game, error) {
 				if err != nil {
 					return &Game{}, err
 				}
-				return game, nil
+				game, err = joinAnyGame(host)
+				return game, err
 			}
 		case <-timeout.C:
 			return &Game{}, fmt.Errorf("did not join game; timed out trying to get game list")
@@ -168,16 +188,20 @@ func (g *Game) join() error {
 		return err
 	}
 	req.SetBasicAuth(g.user, g.pass)
-	resp, err := (&http.{}).Do(req)
-	raw := make([]byte, 1024)
-	n, err := resp.Body.Read(raw)
-	if err != nil && err != io.EOF {
-		return err
-	}
-	body := sanitize(raw[:n])
+	resp, err := (&http.Client{}).Do(req)
 	if resp.StatusCode != http.StatusCreated {
+		raw := make([]byte, 1024)
+		n, _ := resp.Body.Read(raw)
+		body := sanitize(raw[:n])
 		return fmt.Errorf(body)
 	}
+	dec := json.NewDecoder(resp.Body)
+	var body map[string]interface{}
+	err = dec.Decode(&body)
+	if err != nil {
+		return err
+	}
+	g.playerID = body["PlayerID"].(string)
 	return nil
 }
 
@@ -189,7 +213,7 @@ func (g *Game) make() error {
 		return err
 	}
 	req.SetBasicAuth(g.user, g.pass)
-	resp, err := (&http.{}).Do(req)
+	resp, err := (&http.Client{}).Do(req)
 	var madeGame interface{}
 	dec := json.NewDecoder(resp.Body)
 	err = dec.Decode(&madeGame)
@@ -202,6 +226,57 @@ func (g *Game) make() error {
 			g.gameID = madeGame.(map[string]interface{})[id].(string)
 		}
 		break
+	}
+	return nil
+}
+
+func (g *Game) bet(betAmount int) error {
+	g.betSoFar += betAmount
+	return g.act(1, betAmount)
+}
+
+func (g *Game) fold() error {
+	g.betSoFar = 0
+	return g.act(0, 0)
+}
+
+func (g *Game) call() error {
+	fmt.Println("bet to player: ", g.turn.BetToPlayer, "; player bet : ", g.turn.PlayerBet)
+	g.betSoFar = g.turn.BetToPlayer - g.turn.PlayerBet
+	fmt.Println("about to bet ", g.betSoFar, "...")
+	return g.act(1, g.betSoFar)
+}
+
+func (g *Game) raiseBy(betAmount int) error {
+	if betAmount < g.turn.MinRaise {
+		return fmt.Errorf("%v is less than the minimum raise of %v; action not submitted to server. Please submit another bet.", betAmount, g.turn.MinRaise)
+	}
+	g.betSoFar = g.turn.BetToPlayer + betAmount - g.betSoFar
+	return g.act(1, g.turn.BetToPlayer+betAmount)
+}
+
+func (g *Game) act(action int, betAmount int) error {
+	u := g.url
+	u.Path = "games/" + g.gameID + "/players/" + g.playerID + "/acts/"
+	act := &Act{Action: action, BetAmount: betAmount, Player: g.playerID}
+	actJSON, err := json.Marshal(act)
+	if err != nil {
+		return err
+	}
+	bodyReader := bytes.NewReader(actJSON)
+	fmt.Println(u.String())
+	req, err := http.NewRequest("POST", u.String(), bodyReader)
+	req.SetBasicAuth(g.user, g.pass)
+	resp, err := (&http.Client{}).Do(req)
+	raw := make([]byte, 1024)
+	n, err := resp.Body.Read(raw)
+	if err != nil && err != io.EOF {
+		return err
+	}
+	body := sanitize(raw[:n])
+	fmt.Println("bet status code:", resp.StatusCode)
+	if resp.StatusCode != http.StatusCreated {
+		return fmt.Errorf(body)
 	}
 	return nil
 }

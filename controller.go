@@ -2,10 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io"
-	"os"
 	"sort"
-	"strconv"
 	"sync"
 	"time"
 )
@@ -28,6 +25,7 @@ type PublicTable []*PublicPlayer
 
 type Turn struct {
 	Player      guid   `json:"player"`
+	PlayerBet   money  `json:"player bet so far"`
 	BetToPlayer money  `json:"bet to the player"`
 	MinRaise    money  `json:"minimum raise"`
 	Expiry      string `json:"expiry"`
@@ -65,35 +63,35 @@ func (gc *GameController) getGames() []*Game {
 	return gs
 }
 
-func (gc *GameController) getGame(game guid) (pg *PublicGame) {
-	g := gc.Games[game]
-	pg = new(PublicGame)
-	pg.GameID = string(game)
-	pg.Table = make(PublicTable, 0)
-	for _, player := range g.table {
-		pg.Table = append(pg.Table, MakePublicPlayer(g, player))
-	}
-	pg.Turn = new(Turn)
-	pg.Turn.BetToPlayer = g.pot.totalToCall
-	pg.Turn.MinRaise = g.pot.minRaise
-	pg.Turn.Player = "" // ??
-	pg.Turn.Expiry = "" // ??
-	pg.Cards = MakePublicCards(g)
-	pg.Pots = MakePublicPots(g)
+func (gc *GameController) getGame(game guid) *PublicGame {
+	return gc.Games[game].controller.public
+}
+
+func (gc *GameController) makeGame() *PublicGame {
+	g := NewGame(gc)
+	fmt.Println(g)
+	gc.Games[g.gameID] = g
+	go g.run()
+	pg := new(PublicGame)
+	pg = MakePublicGame(g)
 	return pg
 }
 
-func (gc *GameController) makeGame() (pg *PublicGame) {
-	g := NewGame(gc)
-	gc.Games[g.gameID] = g
-	go g.run()
-	pg = new(PublicGame)
+func MakeTurn() *Turn {
+	turn := new(Turn)
+	turn.Player = "" // ??
+	turn.Expiry = "" // ??
+	return turn
+}
+
+func MakePublicGame(g *Game) *PublicGame {
+	pg := new(PublicGame)
 	pg.GameID = string(g.gameID)
 	pg.Table = make(PublicTable, 0)
 	for _, player := range g.table {
 		pg.Table = append(pg.Table, MakePublicPlayer(g, player))
 	}
-	pg.Turn = new(Turn)
+	pg.Turn = MakeTurn()
 	pg.Turn.BetToPlayer = g.pot.totalToCall
 	pg.Turn.MinRaise = g.pot.minRaise
 	pg.Turn.Player = "" // ??
@@ -192,6 +190,7 @@ type controller struct {
 	toGame     chan Act
 	fromGame   chan int // ???
 	queuedActs Acts
+	public     *PublicGame
 	waiting    []*Player
 	sync.Mutex
 }
@@ -234,9 +233,9 @@ type Acts struct {
 }
 
 type Act struct {
-	player    guid
-	action    int
-	betAmount money
+	Player    guid
+	Action    int
+	BetAmount money
 }
 
 func NewActs() Acts {
@@ -246,50 +245,50 @@ func NewActs() Acts {
 }
 
 func (c *controller) getPlayerBet(g *Game, wanted guid) (int, money, error) {
-	timeout := time.NewTimer(30 * time.Second)
 	ticker := time.NewTicker(500 * time.Millisecond)
-	queue := c.queuedActs
 
 	//---Testing---
 	fmt.Printf("Asking **%s** for bet. Player has bet **%v**. Total to call is **%v**\n\n",
 		wanted, g.pot.totalPlayerBetThisRound(wanted), g.pot.totalToCall)
 	//-------------
-
+	c.public = MakePublicGame(g)
+	c.public.Turn.Player = wanted
+	c.public.Turn.PlayerBet = g.pot.totalPlayerBetThisRound(wanted)
+	fmt.Println(time.Now().Add(30 * time.Second).String())
+	c.public.Turn.Expiry = time.Now().Add(30 * time.Second).String()
+	timeout := time.After(30 * time.Second)
 	for {
 		select {
-		case <-timeout.C:
+		case <-timeout:
 			return 0, 0, fmt.Errorf("controller: timed out waiting for bet from player %v", wanted)
 		case <-ticker.C:
-			input := make([]byte, 1024)
-			fmt.Println(">>place your bet...")
-			n, err := os.Stdin.Read(input)
-			if err != nil && err != io.EOF {
-				panicMsg := "Error reading from standard in: " + fmt.Sprint(err)
-				panic(panicMsg)
-			}
-			fmt.Println(input[:n-1])
-			inputstr := string(input[:n-1])
-			i, err := strconv.Atoi(inputstr)
-			if err != nil {
-				continue
-			}
-			if i < 0 {
-				return fold, 0, nil
-			}
-			return call, money(i), nil
-			queue.Lock()
-			for i := 0; i < len(queue.acts); i++ {
-				if queue.acts[i].player == wanted {
-					a := queue.remove(i)
-					queue.Unlock()
-					//---Testing---
-					fmt.Printf("Got an action: **%s**, of amount: **%v**\n\n",
-						a.action, a.betAmount)
-					//-------------
-					return a.action, a.betAmount, nil
+			/*
+				input := make([]byte, 1024)
+				fmt.Println(">>place your bet...")
+				n, err := os.Stdin.Read(input)
+				if err != nil && err != io.EOF {
+					panicMsg := "Error reading from standard in: " + fmt.Sprint(err)
+					panic(panicMsg)
+				}
+				fmt.Println(input[:n-2])
+				inputstr := string(input[:n-2])
+				i, err := strconv.Atoi(inputstr)
+				if err != nil {
+					continue
+				}
+				if i < 0 {
+					return fold, 0, nil
+				}
+				return call, money(i), nil */
+			c.queuedActs.Lock()
+			for i := 0; i < len(c.queuedActs.acts); i++ {
+				if c.queuedActs.acts[i].Player == wanted {
+					a := c.queuedActs.remove(i)
+					c.queuedActs.Unlock()
+					return a.Action, a.BetAmount, nil
 				}
 			}
-			queue.Unlock()
+			c.queuedActs.Unlock()
 		}
 	}
 
@@ -297,22 +296,20 @@ func (c *controller) getPlayerBet(g *Game, wanted guid) (int, money, error) {
 }
 
 func (c *controller) registerPlayerAct(a Act) error {
-	as := c.queuedActs
-	as.Lock()
-	defer as.Unlock()
-	for i := 0; i < len(as.acts); i++ {
-		if as.acts[i].player == a.player {
-			return fmt.Errorf("controller: player %v already has an action in the queue", a.player)
+	c.queuedActs.Lock()
+	defer c.queuedActs.Unlock()
+	for i := 0; i < len(c.queuedActs.acts); i++ {
+		if c.queuedActs.acts[i].Player == a.Player {
+			return fmt.Errorf("controller: player %v already has an action in the queue", a.Player)
 		}
 	}
-	as.acts = append(as.acts, a)
+	c.queuedActs.acts = append(c.queuedActs.acts, a)
 	return nil
 }
 
 func (as *Acts) remove(i int) (a Act) {
 	a = as.acts[i]
 	as.acts = append(as.acts[:i], as.acts[i+1:]...)
-	as.acts = as.acts[:len(as.acts)-1]
 	return a
 }
 
@@ -323,9 +320,10 @@ func NewPlayer(id guid) (p *Player) {
 	return p
 }
 
-func NewController() *controller {
+func NewController(g *Game) *controller {
 	c := new(controller)
 	c.toGame = make(chan Act)
+	c.public = MakePublicGame(g)
 	c.fromGame = make(chan int)
 	c.queuedActs = NewActs()
 	c.waiting = make([]*Player, 0)
@@ -340,7 +338,7 @@ func (c *controller) removePlayerFromGame(g *Game, player guid) {
 	as.Lock()
 	defer as.Unlock()
 	for i := 0; i < len(as.acts); i++ {
-		if as.acts[i].player != player {
+		if as.acts[i].Player != player {
 			replacementActs.acts = append(replacementActs.acts, as.acts[i])
 		}
 	}

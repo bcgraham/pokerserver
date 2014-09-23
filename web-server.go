@@ -82,7 +82,7 @@ func (re RestExposer) getGames(w http.ResponseWriter, r *http.Request) {
 		pg := re.gc.getGame(g.gameID)
 		pgs = append(pgs, pg)
 	}
-	fmt.Println()
+	fmt.Println(pgs)
 	err := enc.Encode(&pgs)
 	if err != nil {
 		fmt.Println(err)
@@ -141,7 +141,11 @@ func (re RestExposer) playerJoinGame(um *UserMap) func(http.ResponseWriter, *htt
 			log.Fatalf("player can't join: %v", err)
 		}
 		w.WriteHeader(http.StatusCreated)
-		// need to write actual data or header sufficient?
+		enc := json.NewEncoder(w)
+		err = enc.Encode(struct{ PlayerID guid }{p.guid})
+		if err != nil {
+			log.Fatalf("player can't join: %v", err)
+		}
 	}
 }
 
@@ -179,7 +183,7 @@ func (re RestExposer) makeAct(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatalf("couldn't decode makeAct json: %v", err)
 	}
-	act.player = playerID
+	act.Player = playerID
 	g := re.gc.Games[gameID]
 
 	if !g.table.contains(playerID) {
@@ -190,7 +194,7 @@ func (re RestExposer) makeAct(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusConflict)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 }
 
 func (re RestExposer) makeUser(um *UserMap) func(http.ResponseWriter, *http.Request) {

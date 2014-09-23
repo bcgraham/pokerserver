@@ -1,6 +1,10 @@
 package main
 
-import "math/rand"
+import (
+	"fmt"
+	"math/rand"
+	"time"
+)
 
 const SEED int64 = 0 // seed for deal
 var UNSHUFFLED = generateCardNames()
@@ -43,6 +47,8 @@ func (g *Game) run() {
 		g.removeBrokePlayers()
 		g.addWaitingPlayers()
 		if len(g.table) < 2 {
+			fmt.Println("Not enough players to start game...")
+			time.Sleep(5 * time.Second)
 			continue //Need 2 players to start a hand
 		}
 		gamePrinter(g)
@@ -150,6 +156,7 @@ func (g *Game) placeBets() {
 		if err != nil {
 			//Err occurs on connection timeout
 			player.state = folded
+			fmt.Println("Player", player.guid, "timed out and is being removed from the game...")
 			g.controller.removePlayerFromGame(g, player.guid)
 			continue
 		}
@@ -193,6 +200,7 @@ func (g *Game) resolveBets() {
 
 	for potNumber, guids := range g.pot.stakeholders() {
 		sidepot := moneyInPots[potNumber]
+		//TODO: what happens when we've removed the players from the list because they timed out?
 		players := g.table.getPlayers(guids)
 		winners := findWinners(players)
 		numWinners := money(len(winners))
@@ -204,4 +212,19 @@ func (g *Game) resolveBets() {
 			}
 		}
 	}
+}
+
+//NewGame is a constructor for a Game object.
+func NewGame(gc *GameController) *Game {
+	g := new(Game)
+	g.gameID = guid(createGuid())
+	fmt.Println(g.gameID)
+	g.table = make(Table, 0)
+	g.pot = new(Pot)
+	g.pot.bets = make([]Bet, 0)
+	g.controller = NewController(g)
+	g.smallBlind = 10
+	g.random = rand.New(rand.NewSource(SEED))
+	fmt.Println("inside NewGame; ", g)
+	return g
 }
