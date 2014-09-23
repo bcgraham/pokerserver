@@ -20,8 +20,9 @@ var user = flag.String("u", "user", "username to be used when authenticating")
 var pass = flag.String("p", "password", "password to be used when authenticating")
 
 func init() {
-	u := url.URL{Scheme: "http", Host: *host, Path: "users/"}
 	flag.Parse()
+	u := url.URL{Scheme: "http", Host: *host, Path: "users/"}
+	fmt.Println(*host)
 	req, err := http.NewRequest("POST", u.String(), nil)
 	if err != nil {
 		log.Fatalf("Could not start game: %v", err)
@@ -37,6 +38,7 @@ func init() {
 }
 
 func main() {
+	fmt.Println(*host)
 	game, err := joinAnyGame(*host)
 	if err != nil {
 		log.Fatalf("Could not join game: %v", err)
