@@ -187,11 +187,9 @@ func NewGameController() (gc *GameController) {
 }
 
 type controller struct {
-	toGame     chan Act
-	fromGame   chan int // ???
-	queuedActs Acts
-	public     *PublicGame
-	waiting    []*Player
+	toGame  chan Act
+	public  *PublicGame
+	waiting []*Player
 	sync.Mutex
 }
 
@@ -227,77 +225,24 @@ func (c *controller) enqueuePlayer(g *Game, p *Player) error {
 	return nil
 }
 
-type Acts struct {
-	acts []Act
-	sync.Mutex
-}
-
 type Act struct {
 	Player    guid
 	Action    int
 	BetAmount money
 }
 
-func NewActs() Acts {
-	as := new(Acts)
-	as.acts = make([]Act, 0)
-	return *as
-}
-
 func (c *controller) getPlayerBet(g *Game, wanted guid) (int, money, error) {
-	c.queuedActs.Lock()
-	for i := 0; i < len(c.queuedActs.acts); i++ {
-		if c.queuedActs.acts[i].Player == wanted {
-			a := c.queuedActs.remove(i)
-			c.queuedActs.Unlock()
-			return a.Action, a.BetAmount, nil
-		}
-	}
-	c.queuedActs.Unlock()
-
-	ticker := time.NewTicker(500 * time.Millisecond)
-
-	//---Testing---
-	fmt.Printf("Asking **%s** for bet. Player has bet **%v**. Total to call is **%v**\n\n",
-		wanted, g.pot.totalPlayerBetThisRound(wanted), g.pot.totalToCall)
-	//-------------
 	c.public = MakePublicGame(g)
 	c.public.Turn.Player = wanted
 	c.public.Turn.PlayerBet = g.pot.totalPlayerBetThisRound(wanted)
 	c.public.Turn.Expiry = time.Now().Add(15 * time.Second).String()
-	timeout := time.After(30 * time.Second)
+	timeout := time.After(15 * time.Second)
 	for {
 		select {
 		case <-timeout:
 			return 0, 0, fmt.Errorf("controller: timed out waiting for bet from player %v", wanted)
-		case <-ticker.C:
-			/*
-				input := make([]byte, 1024)
-				fmt.Println(">>place your bet...")
-				n, err := os.Stdin.Read(input)
-				if err != nil && err != io.EOF {
-					panicMsg := "Error reading from standard in: " + fmt.Sprint(err)
-					panic(panicMsg)
-				}
-				fmt.Println(input[:n-2])
-				inputstr := string(input[:n-2])
-				i, err := strconv.Atoi(inputstr)
-				if err != nil {
-					continue
-				}
-				if i < 0 {
-					return fold, 0, nil
-				}
-				return call, money(i), nil */
-			c.queuedActs.Lock()
-			for i := 0; i < len(c.queuedActs.acts); i++ {
-				if c.queuedActs.acts[i].Player == wanted {
-					a := c.queuedActs.remove(i)
-					c.queuedActs.Unlock()
-					return a.Action, a.BetAmount, nil
-				}
-			}
-			c.queuedActs.Unlock()
+		case a := <-c.toGame:
+			return a.Action, a.BetAmount, nil
 		}
 	}
 
@@ -305,25 +250,11 @@ func (c *controller) getPlayerBet(g *Game, wanted guid) (int, money, error) {
 }
 
 func (c *controller) registerPlayerAct(a Act) error {
-	c.queuedActs.Lock()
-	defer c.queuedActs.Unlock()
 	if a.Player != c.public.Turn.Player {
 		return fmt.Errorf("controller: not this player's turn: %v", a.Player)
 	}
-	for i := 0; i < len(c.queuedActs.acts); i++ {
-		if c.queuedActs.acts[i].Player == a.Player {
-			return fmt.Errorf("controller: player %v already has an action in the queue", a.Player)
-		}
-	}
-	c.public.Turn = nil
-	c.queuedActs.acts = append(c.queuedActs.acts, a)
+	c.toGame <- a
 	return nil
-}
-
-func (as *Acts) remove(i int) (a Act) {
-	a = as.acts[i]
-	as.acts = append(as.acts[:i], as.acts[i+1:]...)
-	return a
 }
 
 func NewPlayer(id guid) (p *Player) {
@@ -337,25 +268,12 @@ func NewController(g *Game) *controller {
 	c := new(controller)
 	c.toGame = make(chan Act)
 	c.public = MakePublicGame(g)
-	c.fromGame = make(chan int)
-	c.queuedActs = NewActs()
 	c.waiting = make([]*Player, 0)
 	return c
 }
 
 func (c *controller) registerInvalidBet(g *Game, player guid, bet money) { return }
 func (c *controller) removePlayerFromGame(g *Game, player guid) {
-	as := c.queuedActs
-	replacementActs := Acts{}
-	replacementActs.acts = make([]Act, 0)
-	as.Lock()
-	defer as.Unlock()
-	for i := 0; i < len(as.acts); i++ {
-		if as.acts[i].Player != player {
-			replacementActs.acts = append(replacementActs.acts, as.acts[i])
-		}
-	}
-	c.queuedActs = replacementActs
 	replacementPlayers := make([]*Player, 0)
 	for i := 0; i < len(g.table); i++ {
 		if g.table[i].guid != player {

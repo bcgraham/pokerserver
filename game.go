@@ -43,14 +43,16 @@ type Game struct {
 
 //run executes the game of poker forever while there are at least 2 players
 func (g *Game) run() {
+	i := 0
 	for {
+		i++
 		g.removeBrokePlayers()
 		g.addWaitingPlayers()
 		if len(g.table) < 2 {
+			fmt.Println("Less than two players at the table...")
 			time.Sleep(2 * time.Second)
 			continue //Need 2 players to start a hand
 		}
-		gamePrinter(g)
 		g.table.AdvanceButton()
 		g.pot = newPot()
 		g.betBlinds()
@@ -62,6 +64,9 @@ func (g *Game) run() {
 		}
 		g.resolveBets()
 		g.table.makeAllPlayersActive()
+		if i%1000 == 0 {
+			fmt.Printf("completed %v hands...\n", i)
+		}
 	}
 }
 

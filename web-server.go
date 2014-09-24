@@ -9,10 +9,13 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	_ "net/http/pprof"
+	"os"
+	"runtime"
+	"runtime/pprof"
 	"strings"
 	"sync"
-
-	"code.google.com/p/go.crypto/bcrypt"
+	"time"
 
 	mux "github.com/gorilla/mux"
 )
@@ -47,15 +50,14 @@ func protector(um *UserMap, restricted func(http.ResponseWriter, *http.Request, 
 			return
 		}
 		username := credentials[0]
-		password := []byte(credentials[1])
+		submitted := credentials[1]
 		playerID := um.handles[username]
-		hash, ok := um.passwords[playerID]
+		password, ok := um.passwords[playerID]
 		if !ok {
 			http.Error(w, "Invalid credentials [1].", http.StatusUnauthorized)
 			return
 		}
-		err = bcrypt.CompareHashAndPassword(hash, password)
-		if err != nil {
+		if submitted != password {
 			http.Error(w, "Invalid credentials [2].", http.StatusUnauthorized)
 			return
 		}
@@ -190,19 +192,19 @@ func (re RestExposer) makeUser(um *UserMap) func(http.ResponseWriter, *http.Requ
 		if len(username) == 0 {
 			http.Error(w, "Username cannot be zero-length; choose another username.", http.StatusBadRequest)
 		}
-		password := []byte(credentials[1])
+		submitted := credentials[1]
 		um.Lock()
 		defer um.Unlock()
 		playerID, ok := um.handles[username]
 		if ok {
-			if err := bcrypt.CompareHashAndPassword(um.passwords[playerID], password); err != nil {
+			if um.passwords[playerID] != submitted {
 				http.Error(w, "Username already exists; choose another username.", http.StatusForbidden)
 				return
 			}
 		} else {
 			playerID = guid(createGuid())
 			um.handles[username] = playerID
-			um.passwords[playerID], err = bcrypt.GenerateFromPassword(password, COST)
+			um.passwords[playerID] = submitted
 			if err != nil {
 				log.Printf("Problem generating password: %v", err)
 				http.Error(w, "There's been a server error. It's probably programming-related. We're sorry. WS-210.", http.StatusInternalServerError)
@@ -220,6 +222,18 @@ func (re RestExposer) makeUser(um *UserMap) func(http.ResponseWriter, *http.Requ
 }
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	f, err := os.Create("profile1.prof")
+	if err != nil {
+		log.Fatal(err)
+	}
+	pprof.StartCPUProfile(f)
+	time.AfterFunc(time.Duration(1*time.Minute), func() {
+		pprof.StopCPUProfile()
+		f.Close()
+		fmt.Println("stopped profile...")
+	})
+
 	UserMap := NewUserMap()
 	gc := NewGameController()
 	re := ExposeByREST(gc)
@@ -270,14 +284,14 @@ func ExposeByREST(gc *GameController) (re RestExposer) {
 
 type UserMap struct {
 	handles   map[string]guid
-	passwords map[guid][]byte
+	passwords map[guid]string
 	sync.RWMutex
 }
 
 func NewUserMap() (um *UserMap) {
 	um = new(UserMap)
 	um.handles = make(map[string]guid)
-	um.passwords = make(map[guid][]byte)
+	um.passwords = make(map[guid]string)
 	return um
 }
 

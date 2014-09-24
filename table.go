@@ -5,7 +5,7 @@ import "fmt"
 type Table []*Player
 
 func (t *Table) addPlayer(p guid) (err error) {
-	var newPlayer *Player = &Player{state: active, guid: p, wealth: 1000}
+	var newPlayer *Player = &Player{state: active, guid: p, wealth: 10000}
 	if len(*t) >= 10 {
 		err = fmt.Errorf("Table full!")
 		return err
