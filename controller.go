@@ -13,44 +13,44 @@ type GameController struct {
 }
 
 type PublicPlayer struct {
-	GUID       guid   `json:"guid"`
+	GUID       guid   `json:"playerID"`
 	Handle     string `json:"handle"`
 	State      string `json:"state"`
 	Wealth     money  `json:"wealth"`
-	InFor      money  `json:"in for"`
-	SmallBlind bool   `json:"small blind"`
+	InFor      money  `json:"bet_so_far"`
+	SmallBlind bool   `json:"small_blind"`
 }
 
 type PublicTable []*PublicPlayer
 
 type Turn struct {
-	Player      guid   `json:"player"`
-	PlayerBet   money  `json:"player bet so far"`
-	BetToPlayer money  `json:"bet to the player"`
+	Player      guid   `json:"playerID"`
+	PlayerBet   money  `json:"bet_so_far"`
+	BetToPlayer money  `json:"bet_to_player"`
 	MinRaise    money  `json:"minimum raise"`
 	Expiry      string `json:"expiry"`
 }
 
 type PublicCards struct {
-	Hole  []string
-	Flop  []string
-	Turn  []string
-	River []string
+	Hole  []string `json:"hole"`
+	Flop  []string `json:"flop"`
+	Turn  []string `json:"turn"`
+	River []string `json:"river"`
 }
 
 type PublicPots []*PublicPot
 
 type PublicPot struct {
-	Size    money
-	Players []guid
+	Size    money  `json:"size"`
+	Players []guid `json:"players"`
 }
 
 type PublicGame struct {
-	GameID string
-	Table  PublicTable
-	Turn   *Turn
-	Cards  *PublicCards
-	Pots   *PublicPots
+	GameID string       `json:"gameID"`
+	Table  PublicTable  `json:"table"`
+	Turn   *Turn        `json:"turn"`
+	Cards  *PublicCards `json:"cards"`
+	Pots   *PublicPots  `json:"pots"`
 }
 
 type authenticator map[guid]guid
@@ -139,6 +139,7 @@ func MakePublicPlayer(g *Game, p *Player) (pp *PublicPlayer) {
 	pp = new(PublicPlayer)
 	pp.Wealth = p.wealth
 	pp.GUID = p.guid
+	pp.InFor = g.pot.totalPlayerBetThisRound(p.guid)
 	switch p.state {
 	case 0:
 		pp.State = "active"
