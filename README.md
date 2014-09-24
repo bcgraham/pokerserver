@@ -213,7 +213,7 @@ players     | array(GUID)     | Players who have bet into this pot
 ### Example JSON response 
 Request:
 
-```GET http://127.0.0.1/games/fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a```
+```GET http://127.0.0.1:8080/games/fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a```
 
 Response:
 ```.json
