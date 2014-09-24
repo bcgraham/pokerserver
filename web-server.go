@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -39,39 +40,29 @@ func parseAuthHeader(header string) (credentials []string, err error) {
 	return credentials, nil
 }
 
-func protector(um *UserMap, restricted http.HandlerFunc) http.HandlerFunc {
+func protector(um *UserMap, restricted func(http.ResponseWriter, *http.Request, guid)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		credentials, err := parseAuthHeader(r.Header.Get("Authorization"))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		vars := mux.Vars(r)
-		vars = mux.Vars(r)
-		playerIDstr, ok := vars["PlayerID"]
-		playerID := guid(playerIDstr)
+		fmt.Println(credentials)
 		username := credentials[0]
-		if ok {
-			if um.handles[username] != playerID {
-				http.Error(w, "You cannot take an action for a player without authenticating as that player.", http.StatusUnauthorized)
-			}
-		}
 		password := []byte(credentials[1])
-		if playerID == "" {
-			playerID = um.handles[username]
-		}
+		playerID := um.handles[username]
 		hash, ok := um.passwords[playerID]
 		if !ok {
-			http.Error(w, "Invalid credentials.", http.StatusUnauthorized)
+			http.Error(w, "Invalid credentials [1].", http.StatusUnauthorized)
 			return
 		}
 		err = bcrypt.CompareHashAndPassword(hash, password)
 		if err != nil {
-			http.Error(w, "Invalid credentials.", http.StatusUnauthorized)
+			http.Error(w, "Invalid credentials [2].", http.StatusUnauthorized)
 			return
 		}
 		// we have successfully authenticated the user; she is who she says she is.
-		restricted(w, r)
+		restricted(w, r, playerID)
 	}
 }
 
@@ -89,7 +80,7 @@ func (re RestExposer) getGames(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (re RestExposer) makeGame(w http.ResponseWriter, r *http.Request) {
+func (re RestExposer) makeGame(w http.ResponseWriter, r *http.Request, verifiedPlayerID guid) {
 	pg := re.gc.makeGame()
 	enc := json.NewEncoder(w)
 	w.WriteHeader(http.StatusCreated)
@@ -98,11 +89,28 @@ func (re RestExposer) makeGame(w http.ResponseWriter, r *http.Request) {
 
 func (re RestExposer) getGame(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	if _, ok := vars["GameID"]; !ok {
+	if _, ok := re.gc.Games[guid(vars["GameID"])]; !ok {
+		http.Error(w, "Game not found.", http.StatusNotFound)
+		return
+	}
+	pg := re.gc.getGame(guid(vars["GameID"]))
+	enc := json.NewEncoder(w)
+	enc.Encode(pg)
+}
+
+func (re RestExposer) getGameAuthenticated(w http.ResponseWriter, r *http.Request, verifiedPlayerID guid) {
+	vars := mux.Vars(r)
+	g, ok := re.gc.Games[guid(vars["GameID"])]
+	if !ok {
 		log.Fatalf("no such game: %v", vars["GameID"])
 	}
+	if !g.table.contains(verifiedPlayerID) {
+		http.Error(w, "The authenticated player has not joined this game.", http.StatusForbidden)
+		return
+	}
+	pg := re.gc.getGamePrivate(guid(vars["GameID"]), verifiedPlayerID)
 	enc := json.NewEncoder(w)
-	enc.Encode(re.gc.Games[guid(vars["GameID"])])
+	enc.Encode(pg)
 }
 
 func (re RestExposer) getPlayers(w http.ResponseWriter, r *http.Request) {
@@ -116,40 +124,37 @@ func (re RestExposer) getPlayers(w http.ResponseWriter, r *http.Request) {
 	enc.Encode(g.table)
 }
 
-func (re RestExposer) playerJoinGame(um *UserMap) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		vars := mux.Vars(r)
-		gameID := guid(vars["GameID"])
-		g, ok := re.gc.Games[gameID]
-		if !ok {
-			http.Error(w, fmt.Sprintf("Could not find game: \"%v\"", gameID), http.StatusNotFound)
-			return
-		}
-		credentials, err := parseAuthHeader(r.Header.Get("Authorization"))
-		username := credentials[0]
-		if err != nil {
-			log.Fatalf("playerJoinGame: problem parsing header to get player ID: %v", err)
-		}
-		if !ok {
-			http.Error(w, fmt.Sprintf("Could not find game: \"%v\"", gameID), http.StatusNotFound)
-			return
-		}
-		p := NewPlayer(um.handles[username])
-		err = g.controller.enqueuePlayer(g, p)
-		if err != nil {
-			// TODO: make error type to marshal errors into for sending to clients
-			log.Fatalf("player can't join: %v", err)
-		}
-		w.WriteHeader(http.StatusCreated)
-		enc := json.NewEncoder(w)
-		err = enc.Encode(struct{ PlayerID guid }{p.guid})
-		if err != nil {
-			log.Fatalf("player can't join: %v", err)
-		}
+func (re RestExposer) playerJoinGame(w http.ResponseWriter, r *http.Request, verifiedPlayerID guid) {
+	vars := mux.Vars(r)
+	gameID := guid(vars["GameID"])
+	g, ok := re.gc.Games[gameID]
+	if !ok {
+		http.Error(w, fmt.Sprintf("Could not find game: \"%v\"", gameID), http.StatusNotFound)
+		return
+	}
+	p := NewPlayer(verifiedPlayerID)
+	err := g.controller.enqueuePlayer(g, p)
+	if err != nil {
+		// TODO: make error type to marshal errors into for sending to clients
+		http.Error(w, "There's been an error. It's probably programming-related. We're sorry. Error code WS-142.", http.StatusInternalServerError)
+		return
+	}
+	var b bytes.Buffer
+	enc := json.NewEncoder(&b)
+	pg := MakePublicGame(g)
+	err = enc.Encode(pg)
+	if err != nil {
+		http.Error(w, "There's been an error. It's probably programming-related. We're sorry. Error code WS-142.", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusAccepted)
+	_, err = io.Copy(w, &b)
+	if err != nil {
+		log.Printf("Error writing to client, web-server.go line 155: %v\n")
 	}
 }
 
-func (re RestExposer) quitPlayer(w http.ResponseWriter, r *http.Request) {
+func (re RestExposer) quitPlayer(w http.ResponseWriter, r *http.Request, verifiedPlayerID guid) {
 	vars := mux.Vars(r)
 	err := r.ParseForm()
 	if err != nil {
@@ -169,7 +174,7 @@ func (re RestExposer) quitPlayer(w http.ResponseWriter, r *http.Request) {
 	//send confirmation of kill
 }
 
-func (re RestExposer) makeAct(w http.ResponseWriter, r *http.Request) {
+func (re RestExposer) makeAct(w http.ResponseWriter, r *http.Request, verifiedPlayerID guid) {
 	vars := mux.Vars(r)
 	gameID := guid(vars["GameID"])
 	playerID := guid(vars["PlayerID"])
@@ -227,6 +232,11 @@ func (re RestExposer) makeUser(um *UserMap) func(http.ResponseWriter, *http.Requ
 			log.Fatalf("Problem generating password: %v", err)
 		}
 		w.WriteHeader(http.StatusCreated)
+		enc := json.NewEncoder(w)
+		err = enc.Encode(struct{ PlayerID string }{PlayerID: string(playerID)})
+		if err != nil {
+			log.Printf("Problem returning response: %v", err)
+		}
 		return
 	}
 
@@ -250,11 +260,12 @@ func main() {
 	games.HandleFunc("/", protector(UserMap, re.makeGame)).Methods("POST") // consider not allowing users to make games
 
 	game := games.PathPrefix("/{GameID:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}}").Subrouter()
+	game.HandleFunc("/", protector(UserMap, re.getGameAuthenticated)).Methods("GET").Headers("Authentication", "")
 	game.HandleFunc("/", re.getGame).Methods("GET")
 
 	players := game.PathPrefix("/players").Subrouter()
 	players.HandleFunc("/", re.getPlayers).Methods("GET")
-	players.HandleFunc("/", protector(UserMap, re.playerJoinGame(UserMap))).Methods("POST")
+	players.HandleFunc("/", protector(UserMap, re.playerJoinGame)).Methods("POST")
 
 	player := players.PathPrefix("/{PlayerID:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}}").Subrouter()
 	player.HandleFunc("/", protector(UserMap, re.quitPlayer)).Methods("DELETE")

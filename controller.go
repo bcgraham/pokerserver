@@ -109,6 +109,7 @@ func (gc *GameController) getGamePrivate(game, player guid) (pg *PublicGame) {
 
 func MakePublicCards(g *Game) (pc *PublicCards) {
 	pc = new(PublicCards)
+	fmt.Println("making public cards; g.pot.potNumber == ", g.pot.potNumber)
 	switch g.pot.potNumber {
 	case 3: // river
 		pc.River = g.deck.Get("RIVER")[0]
@@ -245,6 +246,16 @@ func NewActs() Acts {
 }
 
 func (c *controller) getPlayerBet(g *Game, wanted guid) (int, money, error) {
+	c.queuedActs.Lock()
+	for i := 0; i < len(c.queuedActs.acts); i++ {
+		if c.queuedActs.acts[i].Player == wanted {
+			a := c.queuedActs.remove(i)
+			c.queuedActs.Unlock()
+			return a.Action, a.BetAmount, nil
+		}
+	}
+	c.queuedActs.Unlock()
+
 	ticker := time.NewTicker(500 * time.Millisecond)
 
 	//---Testing---
@@ -298,11 +309,15 @@ func (c *controller) getPlayerBet(g *Game, wanted guid) (int, money, error) {
 func (c *controller) registerPlayerAct(a Act) error {
 	c.queuedActs.Lock()
 	defer c.queuedActs.Unlock()
+	if a.Player != c.public.Turn.Player {
+		return fmt.Errorf("controller: not this player's turn: %v", a.Player)
+	}
 	for i := 0; i < len(c.queuedActs.acts); i++ {
 		if c.queuedActs.acts[i].Player == a.Player {
 			return fmt.Errorf("controller: player %v already has an action in the queue", a.Player)
 		}
 	}
+	c.public.Turn = nil
 	c.queuedActs.acts = append(c.queuedActs.acts, a)
 	return nil
 }
