@@ -264,7 +264,7 @@ func (c *controller) getPlayerBet(g *Game, wanted guid) (int, money, error) {
 	c.public = MakePublicGame(g)
 	c.public.Turn.Player = wanted
 	c.public.Turn.PlayerBet = g.pot.totalPlayerBetThisRound(wanted)
-	c.public.Turn.Expiry = time.Now().Add(30 * time.Second).String()
+	c.public.Turn.Expiry = time.Now().Add(15 * time.Second).String()
 	timeout := time.After(30 * time.Second)
 	for {
 		select {

@@ -248,8 +248,13 @@ func main() {
 	player := players.PathPrefix("/{PlayerID:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}}").Subrouter()
 	player.HandleFunc("/acts/", protector(UserMap, re.makeAct)).Methods("POST")
 
+	/*	r.HandleFunc("/blah/", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "Hi")
+	}) */
+
 	http.Handle("/", r)
 	http.ListenAndServe(":8080", nil)
+	//http.ListenAndServeTLS(":10443", "cert.pem", "key.pem", nil)
 
 }
 

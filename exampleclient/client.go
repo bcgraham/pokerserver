@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -21,13 +22,13 @@ var pass = flag.String("p", "password", "password to be used when authenticating
 
 func main() {
 	flag.Parse()
-	u := url.URL{Scheme: "http", Host: *host, Path: "users/"}
+	u := url.URL{Scheme: "https", Host: *host, Path: "users/"}
 	req, err := http.NewRequest("POST", u.String(), nil)
 	if err != nil {
 		log.Fatalf("Could not start game: %v", err)
 	}
 	req.SetBasicAuth(*user, *pass)
-	resp, err := (&http.Client{}).Do(req)
+	resp, err := client().Do(req)
 	if err != nil {
 		log.Fatalf("Could not connect to host %v: %v", *host, err)
 	}
@@ -39,6 +40,7 @@ func main() {
 	if err != nil && err != io.EOF {
 		log.Fatalf("Couldn't make user: %v\n", err)
 	}
+	resp.Body.Close()
 	playerID := new(string)
 	err = json.Unmarshal(contents[:n], &struct {
 		PlayerID *string `json:"PlayerID"`
@@ -91,7 +93,7 @@ func main() {
 			}
 			continue
 		case "make":
-			game = &Game{User: *user, Pass: *pass, PlayerID: *playerID, URL: url.URL{Scheme: "http", Host: *host}}
+			game = &Game{User: *user, Pass: *pass, PlayerID: *playerID, URL: url.URL{Scheme: "https", Host: *host}}
 			err = game.make()
 			if err != nil {
 				fmt.Printf("Could not make game; received error: %v\n", err)
@@ -198,14 +200,14 @@ func joinAnyGame(host, user, pass string) (*Game, error) {
 			}
 			if len(gameList) > 0 {
 				game := gameList[0]
-				game.User, game.Pass, game.URL = user, pass, url.URL{Scheme: "http", Host: host}
+				game.User, game.Pass, game.URL = user, pass, url.URL{Scheme: "https", Host: host}
 				err := game.join()
 				if err != nil {
 					return &Game{}, err
 				}
 				return game, nil
 			} else {
-				game := &Game{User: user, Pass: pass, URL: url.URL{Scheme: "http", Host: host}}
+				game := &Game{User: user, Pass: pass, URL: url.URL{Scheme: "https", Host: host}}
 				err = game.make()
 				if err != nil {
 					return &Game{}, err
@@ -225,12 +227,13 @@ func getGameList(host string) (gameList []*Game, err error) {
 			err = fmt.Errorf("%v", r)
 		}
 	}()
-	u := url.URL{Scheme: "http", Host: host}
+	u := url.URL{Scheme: "https", Host: host}
 	u.Path = "games/"
-	resp, err := http.Get(u.String())
+	resp, err := client().Get(u.String())
 	if err != nil {
 		return gameList, err
 	}
+	defer resp.Body.Close()
 	contents := make([]byte, 131072) // should be enough, but will fail poorly if game list is longer
 	n, err := resp.Body.Read(contents)
 	if err != nil && err != io.EOF {
@@ -252,7 +255,8 @@ func (g *Game) join() error {
 		return err
 	}
 	req.SetBasicAuth(g.User, g.Pass)
-	resp, err := (&http.Client{}).Do(req)
+	resp, err := client().Do(req)
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusAccepted {
 		raw := make([]byte, 1024)
 		n, _ := resp.Body.Read(raw)
@@ -279,10 +283,11 @@ func (g *Game) make() error {
 		return err
 	}
 	req.SetBasicAuth(g.User, g.Pass)
-	resp, err := (&http.Client{}).Do(req)
+	resp, err := client().Do(req)
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	contents := make([]byte, 10240)
 	n, err := resp.Body.Read(contents)
 	if err != nil && err != io.EOF {
@@ -329,7 +334,11 @@ func (g *Game) act(action int, betAmount int) error {
 	bodyReader := bytes.NewReader(actJSON)
 	req, err := http.NewRequest("POST", u.String(), bodyReader)
 	req.SetBasicAuth(g.User, g.Pass)
-	resp, err := (&http.Client{}).Do(req)
+	resp, err := client().Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
 	raw := make([]byte, 1024)
 	n, err := resp.Body.Read(raw)
 	if err != nil && err != io.EOF {
@@ -352,21 +361,24 @@ func (g *Game) poll() error {
 	req.SetBasicAuth(g.User, g.Pass)
 	tempGame := new(Game)
 	for {
-		resp, err := (&http.Client{}).Do(req)
+		resp, err := client().Do(req)
 		if err != nil {
 			return fmt.Errorf("Error doing request: %v", err)
 		}
 		if resp.StatusCode == http.StatusForbidden {
 			time.Sleep(2250 * time.Millisecond)
+			resp.Body.Close()
 			continue
 		}
 		contents := make([]byte, 10240)
 		n, err := resp.Body.Read(contents)
 		if err != nil && err != io.EOF {
+			resp.Body.Close()
 			return fmt.Errorf("Error reading contents of response body: %v", err)
 		}
 		err = json.Unmarshal(contents[:n], tempGame)
 		if err != nil {
+			resp.Body.Close()
 			return fmt.Errorf("Error unmarshaling json: %v\n.\n%v\n", err, string(contents[:n]))
 		}
 		if tempGame.Turn.Player == g.PlayerID {
@@ -379,6 +391,7 @@ func (g *Game) poll() error {
 			*g = *tempGame
 			return nil
 		}
+		resp.Body.Close()
 		time.Sleep(2000 * time.Millisecond)
 	}
 }
@@ -417,4 +430,8 @@ func cardPrinter(cards struct {
 		s += fmt.Sprintf("The table is showing %v.\n", c)
 	}
 	return s
+}
+
+func client() *http.Client {
+	return &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
 }

@@ -1,7 +1,12 @@
 # Logs
 logs
 *.log
+
+# Executables
 *.exe
+
+# SSL stuff
+*.pem
 
 # Runtime data
 pids
