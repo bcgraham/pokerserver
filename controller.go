@@ -34,8 +34,8 @@ type Turn struct {
 type PublicCards struct {
 	Hole  []string
 	Flop  []string
-	Turn  string
-	River string
+	Turn  []string
+	River []string
 }
 
 type PublicPots []*PublicPot
@@ -63,17 +63,15 @@ func (gc *GameController) getGames() []*Game {
 	return gs
 }
 
-func (gc *GameController) getGame(game guid) *PublicGame {
-	return gc.Games[game].controller.public
+func (gc *GameController) getGame(game guid) PublicGame {
+	return *gc.Games[game].controller.public
 }
 
 func (gc *GameController) makeGame() *PublicGame {
 	g := NewGame(gc)
-	fmt.Println(g)
 	gc.Games[g.gameID] = g
 	go g.run()
-	pg := new(PublicGame)
-	pg = MakePublicGame(g)
+	pg := MakePublicGame(g)
 	return pg
 }
 
@@ -101,21 +99,22 @@ func MakePublicGame(g *Game) *PublicGame {
 	return pg
 }
 
-func (gc *GameController) getGamePrivate(game, player guid) (pg *PublicGame) {
+func (gc *GameController) getGamePrivate(game, player guid) (pg PublicGame) {
+	g := gc.Games[game]
 	pg = gc.getGame(game)
-	pg.Cards.Hole = gc.Games[game].deck.Get(string(player))
+	pg.Cards = MakePublicCards(g)
+	pg.Cards.Hole = g.deck.Get(string(player))
 	return pg
 }
 
 func MakePublicCards(g *Game) (pc *PublicCards) {
 	pc = new(PublicCards)
-	fmt.Println("making public cards; g.pot.potNumber == ", g.pot.potNumber)
-	switch g.pot.potNumber {
+	switch g.round {
 	case 3: // river
-		pc.River = g.deck.Get("RIVER")[0]
+		pc.River = g.deck.Get("RIVER")
 		fallthrough
 	case 2: // turn
-		pc.Turn = g.deck.Get("TURN")[0]
+		pc.Turn = g.deck.Get("TURN")
 		fallthrough
 	case 1: // flop
 		pc.Flop = g.deck.Get("FLOP")
@@ -265,7 +264,6 @@ func (c *controller) getPlayerBet(g *Game, wanted guid) (int, money, error) {
 	c.public = MakePublicGame(g)
 	c.public.Turn.Player = wanted
 	c.public.Turn.PlayerBet = g.pot.totalPlayerBetThisRound(wanted)
-	fmt.Println(time.Now().Add(30 * time.Second).String())
 	c.public.Turn.Expiry = time.Now().Add(30 * time.Second).String()
 	timeout := time.After(30 * time.Second)
 	for {

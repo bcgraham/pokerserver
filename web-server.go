@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -47,7 +46,6 @@ func protector(um *UserMap, restricted func(http.ResponseWriter, *http.Request, 
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		fmt.Println(credentials)
 		username := credentials[0]
 		password := []byte(credentials[1])
 		playerID := um.handles[username]
@@ -68,12 +66,11 @@ func protector(um *UserMap, restricted func(http.ResponseWriter, *http.Request, 
 
 func (re RestExposer) getGames(w http.ResponseWriter, r *http.Request) {
 	enc := json.NewEncoder(w)
-	pgs := make([]*PublicGame, 0)
+	pgs := make([]PublicGame, 0)
 	for _, g := range re.gc.Games {
 		pg := re.gc.getGame(g.gameID)
 		pgs = append(pgs, pg)
 	}
-	fmt.Println(pgs)
 	err := enc.Encode(&pgs)
 	if err != nil {
 		fmt.Println(err)
@@ -82,9 +79,8 @@ func (re RestExposer) getGames(w http.ResponseWriter, r *http.Request) {
 
 func (re RestExposer) makeGame(w http.ResponseWriter, r *http.Request, verifiedPlayerID guid) {
 	pg := re.gc.makeGame()
-	enc := json.NewEncoder(w)
-	w.WriteHeader(http.StatusCreated)
-	enc.Encode(pg)
+	g := re.gc.Games[guid(pg.GameID)]
+	joinGame(w, g, verifiedPlayerID)
 }
 
 func (re RestExposer) getGame(w http.ResponseWriter, r *http.Request) {
@@ -132,26 +128,7 @@ func (re RestExposer) playerJoinGame(w http.ResponseWriter, r *http.Request, ver
 		http.Error(w, fmt.Sprintf("Could not find game: \"%v\"", gameID), http.StatusNotFound)
 		return
 	}
-	p := NewPlayer(verifiedPlayerID)
-	err := g.controller.enqueuePlayer(g, p)
-	if err != nil {
-		// TODO: make error type to marshal errors into for sending to clients
-		http.Error(w, "There's been an error. It's probably programming-related. We're sorry. Error code WS-142.", http.StatusInternalServerError)
-		return
-	}
-	var b bytes.Buffer
-	enc := json.NewEncoder(&b)
-	pg := MakePublicGame(g)
-	err = enc.Encode(pg)
-	if err != nil {
-		http.Error(w, "There's been an error. It's probably programming-related. We're sorry. Error code WS-142.", http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusAccepted)
-	_, err = io.Copy(w, &b)
-	if err != nil {
-		log.Printf("Error writing to client, web-server.go line 155: %v\n")
-	}
+	joinGame(w, g, verifiedPlayerID)
 }
 
 func (re RestExposer) quitPlayer(w http.ResponseWriter, r *http.Request, verifiedPlayerID guid) {
@@ -216,26 +193,26 @@ func (re RestExposer) makeUser(um *UserMap) func(http.ResponseWriter, *http.Requ
 		password := []byte(credentials[1])
 		um.Lock()
 		defer um.Unlock()
-		if playerID, ok := um.handles[username]; ok {
+		playerID, ok := um.handles[username]
+		if ok {
 			if err := bcrypt.CompareHashAndPassword(um.passwords[playerID], password); err != nil {
 				http.Error(w, "Username already exists; choose another username.", http.StatusForbidden)
 				return
 			}
-			w.WriteHeader(http.StatusCreated)
-			// consider using http.StatusNoContent to differentiate between just-made users and already-existing users
-			return
-		}
-		playerID := guid(createGuid())
-		um.handles[username] = playerID
-		um.passwords[playerID], err = bcrypt.GenerateFromPassword(password, COST)
-		if err != nil {
-			log.Fatalf("Problem generating password: %v", err)
+		} else {
+			playerID = guid(createGuid())
+			um.handles[username] = playerID
+			um.passwords[playerID], err = bcrypt.GenerateFromPassword(password, COST)
+			if err != nil {
+				log.Printf("Problem generating password: %v", err)
+				http.Error(w, "There's been a server error. It's probably programming-related. We're sorry. WS-210.", http.StatusInternalServerError)
+			}
 		}
 		w.WriteHeader(http.StatusCreated)
 		enc := json.NewEncoder(w)
 		err = enc.Encode(struct{ PlayerID string }{PlayerID: string(playerID)})
 		if err != nil {
-			log.Printf("Problem returning response: %v", err)
+			log.Printf("Problem when encoding from makeUser: %v\n", err)
 		}
 		return
 	}
@@ -246,32 +223,30 @@ func main() {
 	UserMap := NewUserMap()
 	gc := NewGameController()
 	re := ExposeByREST(gc)
-	r := mux.NewRouter()
+	r := mux.NewRouter().StrictSlash(true)
 
-	users := r.PathPrefix("/users").Subrouter()
-	users.HandleFunc("/", re.makeUser(UserMap)).Methods("POST")
+	r.HandleFunc("/users/", re.makeUser(UserMap)).Methods("POST")
 
 	//user := users.PathPrefix("/{UserID:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}}").Subrouter()
 	//user.HandleFunc("/", protector(UserMap, re.updateUser)).Methods("PUT")
 	//user.HandleFunc("/", protector(UserMap, re.removeUser)).Methods("DELETE")
 
+	r.HandleFunc("/games/", re.getGames).Methods("GET")
+	r.HandleFunc("/games/", protector(UserMap, re.makeGame)).Methods("POST") // consider not allowing users to make games
+
 	games := r.PathPrefix("/games").Subrouter()
-	games.HandleFunc("/", re.getGames).Methods("GET")
-	games.HandleFunc("/", protector(UserMap, re.makeGame)).Methods("POST") // consider not allowing users to make games
+	games.HandleFunc("/{GameID:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}}/", protector(UserMap, re.getGameAuthenticated)).Methods("GET").Headers("Authorization", "")
+	games.HandleFunc("/{GameID:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}}/", re.getGame).Methods("GET")
 
 	game := games.PathPrefix("/{GameID:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}}").Subrouter()
-	game.HandleFunc("/", protector(UserMap, re.getGameAuthenticated)).Methods("GET").Headers("Authentication", "")
-	game.HandleFunc("/", re.getGame).Methods("GET")
+	game.HandleFunc("/players/", re.getPlayers).Methods("GET")
+	game.HandleFunc("/players/", protector(UserMap, re.playerJoinGame)).Methods("POST")
 
 	players := game.PathPrefix("/players").Subrouter()
-	players.HandleFunc("/", re.getPlayers).Methods("GET")
-	players.HandleFunc("/", protector(UserMap, re.playerJoinGame)).Methods("POST")
+	players.HandleFunc("/{PlayerID:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}}/", protector(UserMap, re.quitPlayer)).Methods("DELETE")
 
 	player := players.PathPrefix("/{PlayerID:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}}").Subrouter()
-	player.HandleFunc("/", protector(UserMap, re.quitPlayer)).Methods("DELETE")
-
-	acts := player.PathPrefix("/acts").Subrouter()
-	acts.HandleFunc("/", protector(UserMap, re.makeAct)).Methods("POST")
+	player.HandleFunc("/acts/", protector(UserMap, re.makeAct)).Methods("POST")
 
 	http.Handle("/", r)
 	http.ListenAndServe(":8080", nil)
@@ -299,4 +274,22 @@ func NewUserMap() (um *UserMap) {
 	um.handles = make(map[string]guid)
 	um.passwords = make(map[guid][]byte)
 	return um
+}
+
+func joinGame(w http.ResponseWriter, g *Game, verifiedPlayerID guid) {
+	p := NewPlayer(verifiedPlayerID)
+	err := g.controller.enqueuePlayer(g, p)
+	if err != nil {
+		// TODO: make error type to marshal errors into for sending to clients
+		http.Error(w, "This player has already joined this game.", http.StatusConflict)
+		return
+	}
+	enc := json.NewEncoder(w)
+	w.WriteHeader(http.StatusAccepted)
+	pg := MakePublicGame(g)
+	err = enc.Encode(pg)
+	if err != nil {
+		log.Printf("Error in joinGame when encoding public game: %v\n", err)
+		return
+	}
 }

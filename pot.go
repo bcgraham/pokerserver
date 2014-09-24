@@ -1,9 +1,6 @@
 package main
 
-import (
-	"fmt"
-	"math"
-)
+import "math"
 
 type Pot struct {
 	minRaise    money
@@ -100,7 +97,6 @@ func (p *Pot) receiveBet(id guid, bet money) {
 	if betSoFar+bet > p.totalToCall {
 		p.totalToCall = betSoFar + bet
 	}
-	fmt.Printf("Receiving bet: player %v has bet amount %v, bringing her total bet to %v (raise amount %v)\n", id, bet, betSoFar, raise)
 	if raise > p.minRaise {
 		p.minRaise = raise
 	}

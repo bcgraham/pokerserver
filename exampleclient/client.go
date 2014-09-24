@@ -19,35 +19,47 @@ var host = flag.String("host", "localhost:8080", "host:port location of server")
 var user = flag.String("u", "user", "username to be used when authenticating")
 var pass = flag.String("p", "password", "password to be used when authenticating")
 
-func init() {
+func main() {
 	flag.Parse()
 	u := url.URL{Scheme: "http", Host: *host, Path: "users/"}
-	fmt.Println(*host)
 	req, err := http.NewRequest("POST", u.String(), nil)
 	if err != nil {
 		log.Fatalf("Could not start game: %v", err)
 	}
-	fmt.Println("User: ", *user, "; Pass: ", *pass)
 	req.SetBasicAuth(*user, *pass)
 	resp, err := (&http.Client{}).Do(req)
 	if err != nil {
-		log.Fatalf("Could not start game: %v", err)
+		log.Fatalf("Could not connect to host %v: %v", *host, err)
 	}
-	fmt.Println("From making user: ", resp.Status)
 	if resp.StatusCode != http.StatusCreated {
 		log.Fatalf("Could not create user: %v", resp.Status)
 	}
-}
-
-func main() {
-	flag.Parse()
-	fmt.Println(*host)
-	game, err := joinAnyGame(*host, *user, *pass)
-	if err != nil {
-		log.Fatalf("Could not join game: %v", err)
+	contents := make([]byte, 512)
+	n, err := resp.Body.Read(contents)
+	if err != nil && err != io.EOF {
+		log.Fatalf("Couldn't make user: %v\n", err)
 	}
-	fmt.Printf("Joined game %v.\n", game.GameID)
+	playerID := new(string)
+	err = json.Unmarshal(contents[:n], &struct {
+		PlayerID *string `json:"PlayerID"`
+	}{PlayerID: playerID})
+	if err != nil {
+		log.Fatalf("Could not start game: %v", err)
+	}
+	game := new(Game)
 	for {
+		if game.GameID != "" {
+			err := game.poll()
+			if err != nil {
+				fmt.Println("poll returned err: ", err)
+			}
+			fmt.Printf("\nYour turn! \n%v", cardPrinter(game.Cards))
+			if game.Turn.BetToPlayer == 0 {
+				fmt.Printf("There is no current bet.\n")
+			} else {
+				fmt.Printf("The current bet is %v. You have %v in play.\nIt would cost you %v to call. The minimum raise is %v.\n", game.Turn.BetToPlayer, game.Turn.PlayerBet, game.Turn.BetToPlayer-game.Turn.PlayerBet, game.Turn.MinRaise)
+			}
+		}
 		buf := make([]byte, 1024)
 		n, err := os.Stdin.Read(buf)
 		if err != nil && err != io.EOF {
@@ -64,8 +76,27 @@ func main() {
 			}
 			for _, g := range gameList {
 				fmt.Println(g.GameID)
-				continue
 			}
+			continue
+		case "joinany":
+			game, err = joinAnyGame(*host, *user, *pass)
+			game.PlayerID = *playerID
+			if err != nil {
+				log.Fatalf("Could not join game: %v", err)
+			}
+			continue
+		case "join":
+			if len(args) == 0 {
+				fmt.Println("Invalid input; need a game to join.")
+			}
+			continue
+		case "make":
+			game = &Game{User: *user, Pass: *pass, PlayerID: *playerID, URL: url.URL{Scheme: "http", Host: *host}}
+			err = game.make()
+			if err != nil {
+				fmt.Printf("Could not make game; received error: %v\n", err)
+			}
+			continue
 		case "bet":
 			if len(args) == 0 {
 				fmt.Println("Invalid input; need an amount to bet.")
@@ -79,10 +110,21 @@ func main() {
 			if err := game.bet(bet); err != nil {
 				fmt.Printf("Could not make bet: got error: %v\n", err)
 			}
+			continue
 		case "call":
 			if err := game.call(); err != nil {
 				fmt.Printf("Could not make bet: got error: %v\n", err)
 			}
+			continue
+		case "check":
+			if game.Turn.BetToPlayer > game.Turn.PlayerBet {
+				fmt.Print("You can't check. You have to call.\n")
+				continue
+			}
+			if err := game.call(); err != nil {
+				fmt.Printf("Could not make bet: got error: %v\n", err)
+			}
+			continue
 		case "raise by":
 			if len(args) == 0 {
 				fmt.Println("Invalid input; need an amount to bet.")
@@ -129,8 +171,8 @@ type Game struct {
 	Cards struct {
 		Hole  []string
 		Flop  []string
-		Turn  string
-		River string
+		Turn  []string
+		River []string
 	}
 	Pots []struct {
 		Size    int
@@ -155,30 +197,19 @@ func joinAnyGame(host, user, pass string) (*Game, error) {
 				return &Game{}, err
 			}
 			if len(gameList) > 0 {
-				fmt.Println(gameList)
 				game := gameList[0]
-				game.User = user
-				game.Pass = pass
-				game.URL = url.URL{Scheme: "http", Host: host}
+				game.User, game.Pass, game.URL = user, pass, url.URL{Scheme: "http", Host: host}
 				err := game.join()
 				if err != nil {
 					return &Game{}, err
 				}
 				return game, nil
 			} else {
-				fmt.Println("Server has no active games; making game...")
 				game := &Game{User: user, Pass: pass, URL: url.URL{Scheme: "http", Host: host}}
 				err = game.make()
 				if err != nil {
 					return &Game{}, err
 				}
-				fmt.Println("About to try to join...")
-				err = game.join()
-				if err != nil {
-					fmt.Println("Could not join...")
-					return &Game{}, err
-				}
-				fmt.Println("Seemingly joined okay...")
 				return game, err
 			}
 		case <-timeout.C:
@@ -275,10 +306,8 @@ func (g *Game) fold() error {
 }
 
 func (g *Game) call() error {
-	fmt.Println("bet to player: ", g.Turn.BetToPlayer, "; player bet : ", g.Turn.PlayerBet)
-	g.BetSoFar = g.Turn.BetToPlayer - g.Turn.PlayerBet
-	fmt.Println("about to bet ", g.BetSoFar, "...")
-	return g.act(1, g.BetSoFar)
+	g.BetSoFar = g.Turn.BetToPlayer
+	return g.act(1, g.BetSoFar-g.Turn.PlayerBet)
 }
 
 func (g *Game) raiseBy(betAmount int) error {
@@ -298,7 +327,6 @@ func (g *Game) act(action int, betAmount int) error {
 		return err
 	}
 	bodyReader := bytes.NewReader(actJSON)
-	fmt.Println(u.String())
 	req, err := http.NewRequest("POST", u.String(), bodyReader)
 	req.SetBasicAuth(g.User, g.Pass)
 	resp, err := (&http.Client{}).Do(req)
@@ -308,15 +336,85 @@ func (g *Game) act(action int, betAmount int) error {
 		return err
 	}
 	body := sanitize(raw[:n])
-	fmt.Println("bet status code:", resp.StatusCode)
 	if resp.StatusCode != http.StatusCreated {
 		return fmt.Errorf(body)
 	}
 	return nil
 }
 
+func (g *Game) poll() error {
+	u := g.URL
+	u.Path = "games/" + g.GameID + "/"
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return err
+	}
+	req.SetBasicAuth(g.User, g.Pass)
+	tempGame := new(Game)
+	for {
+		resp, err := (&http.Client{}).Do(req)
+		if err != nil {
+			return fmt.Errorf("Error doing request: %v", err)
+		}
+		if resp.StatusCode == http.StatusForbidden {
+			time.Sleep(2250 * time.Millisecond)
+			continue
+		}
+		contents := make([]byte, 10240)
+		n, err := resp.Body.Read(contents)
+		if err != nil && err != io.EOF {
+			return fmt.Errorf("Error reading contents of response body: %v", err)
+		}
+		err = json.Unmarshal(contents[:n], tempGame)
+		if err != nil {
+			return fmt.Errorf("Error unmarshaling json: %v\n.\n%v\n", err, string(contents[:n]))
+		}
+		if tempGame.Turn.Player == g.PlayerID {
+			tempGame.User = g.User
+			tempGame.Pass = g.Pass
+			tempGame.GameID = g.GameID
+			tempGame.PlayerID = g.PlayerID
+			tempGame.BetSoFar = g.BetSoFar
+			tempGame.URL = g.URL
+			*g = *tempGame
+			return nil
+		}
+		time.Sleep(2000 * time.Millisecond)
+	}
+}
+
 func sanitize(raw []byte) string {
 	str := string(raw)
 	crlf := "\r\n"
 	return strings.Replace(str, crlf, "", -1)
+}
+
+func cardPrinter(cards struct {
+	Hole  []string
+	Flop  []string
+	Turn  []string
+	River []string
+}) string {
+	s := fmt.Sprintf("You're holding %v.\n", cards.Hole)
+	c := "["
+	for _, card := range cards.Flop {
+		c += card
+		c += ","
+	}
+	for _, card := range cards.Turn {
+		c += card
+		c += ","
+	}
+	for _, card := range cards.River {
+		c += card
+		c += ","
+	}
+	c = string(c[:len(c)-1])
+	if len(c) == 0 {
+		s += fmt.Sprintf("There are no table cards showing.\n")
+	} else {
+		c += "]"
+		s += fmt.Sprintf("The table is showing %v.\n", c)
+	}
+	return s
 }

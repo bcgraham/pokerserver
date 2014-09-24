@@ -47,8 +47,7 @@ func (g *Game) run() {
 		g.removeBrokePlayers()
 		g.addWaitingPlayers()
 		if len(g.table) < 2 {
-			fmt.Println("Not enough players to start game...")
-			time.Sleep(5 * time.Second)
+			time.Sleep(2 * time.Second)
 			continue //Need 2 players to start a hand
 		}
 		gamePrinter(g)
@@ -218,13 +217,11 @@ func (g *Game) resolveBets() {
 func NewGame(gc *GameController) *Game {
 	g := new(Game)
 	g.gameID = guid(createGuid())
-	fmt.Println(g.gameID)
 	g.table = make(Table, 0)
 	g.pot = new(Pot)
 	g.pot.bets = make([]Bet, 0)
 	g.controller = NewController(g)
 	g.smallBlind = 10
 	g.random = rand.New(rand.NewSource(SEED))
-	fmt.Println("inside NewGame; ", g)
 	return g
 }
