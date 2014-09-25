@@ -61,14 +61,14 @@ func main() {
 			if err != nil {
 				fmt.Println("poll returned err: ", err)
 			}
-			// fmt.Printf("\nYour turn! \n%v", cardPrinter(game.Cards))
-			// if game.Turn.BetToPlayer == 0 {
-			// 	fmt.Printf("There is no current bet.\n")
-			// } else {
-			// 	fmt.Printf("The current bet is %v. You have %v in play.\nIt would cost you %v to call. The minimum raise is %v.\n", game.Turn.BetToPlayer, game.Turn.PlayerBet, game.Turn.BetToPlayer-game.Turn.PlayerBet, game.Turn.MinRaise)
-			// }
-			game.call()
-			continue
+			fmt.Printf("\nYour turn! \n%v", cardPrinter(game.Cards))
+			if game.Turn.BetToPlayer == 0 {
+				fmt.Printf("There is no current bet.\n")
+			} else {
+				fmt.Printf("The current bet is %v. You have %v in play.\nIt would cost you %v to call. The minimum raise is %v.\n", game.Turn.BetToPlayer, game.Turn.PlayerBet, game.Turn.BetToPlayer-game.Turn.PlayerBet, game.Turn.MinRaise)
+			}
+			// game.call()
+			// continue
 		}
 		buf := make([]byte, 1024)
 		n, err := os.Stdin.Read(buf)
@@ -318,8 +318,7 @@ func (g *Game) fold() error {
 }
 
 func (g *Game) call() error {
-	g.BetSoFar = g.Turn.BetToPlayer
-	return g.act(1, g.BetSoFar-g.Turn.PlayerBet)
+	return g.act(1, g.Turn.BetToPlayer-g.Turn.PlayerBet)
 }
 
 func (g *Game) raiseBy(betAmount int) error {

@@ -242,7 +242,7 @@ func main() {
 	gc := NewGameController()
 	re := ExposeByREST(gc)
 	r := mux.NewRouter().StrictSlash(true)
-	http.Handle("/demo/cards/", http.FileServer(http.Dir("demo/cards/")))
+	r.Handle("/demo/cards/{rest}", http.StripPrefix("/demo/cards/", http.FileServer(http.Dir("./demo/cards/"))))
 
 	r.HandleFunc("/demo/", re.serveDemo)
 

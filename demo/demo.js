@@ -71,7 +71,7 @@
 
 function getJSON(){
     $.ajax({
-       // beforeSend: function(xhr) { xhr.setRequestHeader("Authorization", "Basic " + btoa("jacob" + ":" + "jacob")); },
+       beforeSend: function(xhr) { xhr.setRequestHeader("Authorization", "Basic " + btoa("jake" + ":" + "password")); },
        url: "http://localhost:8080/games/fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a/",
        jsonp: function( data ) {
         $("#handle").html(data.table[0].handle)
