@@ -66,6 +66,10 @@ func protector(um *UserMap, restricted func(http.ResponseWriter, *http.Request, 
 	}
 }
 
+func (re RestExposer) serveDemo(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "demo/demo.html")
+}
+
 func (re RestExposer) getGames(w http.ResponseWriter, r *http.Request) {
 	enc := json.NewEncoder(w)
 	pgs := make([]PublicGame, 0)
@@ -238,6 +242,9 @@ func main() {
 	gc := NewGameController()
 	re := ExposeByREST(gc)
 	r := mux.NewRouter().StrictSlash(true)
+	http.Handle("/demo/cards/", http.FileServer(http.Dir("demo/cards/")))
+
+	r.HandleFunc("/demo/", re.serveDemo)
 
 	r.HandleFunc("/users/", re.makeUser(UserMap)).Methods("POST")
 
