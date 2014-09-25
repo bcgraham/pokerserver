@@ -171,10 +171,10 @@ type Game struct {
 		SmallBlind bool
 	}
 	Turn struct {
-		Player      string `json:"player"`
-		PlayerBet   int    `json:"player bet so far"`
-		BetToPlayer int    `json:"bet to the player"`
-		MinRaise    int    `json:"minimum raise"`
+		Player      string `json:"playerID"`
+		PlayerBet   int    `json:"bet_so_far"`
+		BetToPlayer int    `json:"bet_to_player"`
+		MinRaise    int    `json:"minimum_raise"`
 		Expiry      string `json:"expiry"`
 	}
 	Cards struct {

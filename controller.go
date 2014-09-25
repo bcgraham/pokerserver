@@ -27,7 +27,7 @@ type Turn struct {
 	Player      guid   `json:"playerID"`
 	PlayerBet   money  `json:"bet_so_far"`
 	BetToPlayer money  `json:"bet_to_player"`
-	MinRaise    money  `json:"minimum raise"`
+	MinRaise    money  `json:"minimum_raise"`
 	Expiry      string `json:"expiry"`
 }
 
