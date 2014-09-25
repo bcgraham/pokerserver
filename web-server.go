@@ -104,7 +104,8 @@ func (re RestExposer) getGameAuthenticated(w http.ResponseWriter, r *http.Reques
 	vars := mux.Vars(r)
 	g, ok := re.gc.Games[guid(vars["GameID"])]
 	if !ok {
-		log.Fatalf("no such game: %v", vars["GameID"])
+		http.Error(w, "Game not found.", http.StatusNotFound)
+		return
 	}
 	if !g.table.contains(verifiedPlayerID) {
 		http.Error(w, "The authenticated player has not joined this game.", http.StatusForbidden)
@@ -120,7 +121,8 @@ func (re RestExposer) getPlayers(w http.ResponseWriter, r *http.Request) {
 	g, ok := re.gc.Games[guid(vars["GameID"])]
 	if !ok {
 		// TODO: handle errors
-		log.Fatalf("no such game: %v", vars["GameID"])
+		http.Error(w, "Game not found.", http.StatusNotFound)
+		return
 	}
 	enc := json.NewEncoder(w)
 	enc.Encode(g.table)
@@ -146,12 +148,14 @@ func (re RestExposer) quitPlayer(w http.ResponseWriter, r *http.Request, verifie
 	g, ok := re.gc.Games[guid(vars["GameID"])]
 	if !ok {
 		// TODO: handle errors
-		log.Fatalf("no such game: %v", vars["GameID"])
+		http.Error(w, "Game not found.", http.StatusNotFound)
+		return
 	}
 	playerID := guid(vars["PlayerID"])
 	if !g.table.contains(playerID) {
 		// TODO: handle errors
-		log.Fatalf("no such player: %v", playerID)
+		http.Error(w, "Game not found.", http.StatusNotFound)
+		return
 	}
 	g.table.remove(playerID) // does not exist
 	//send confirmation of kill
@@ -164,12 +168,14 @@ func (re RestExposer) makeAct(w http.ResponseWriter, r *http.Request, verifiedPl
 	limited := &io.LimitedReader{R: r.Body, N: 1048576} // meg of json ought to be enough
 	data, err := ioutil.ReadAll(limited)
 	if err != nil {
-		log.Fatalf("Problem reading makeAct body: %v", err)
+		http.Error(w, "Couldn't read request.", http.StatusBadRequest)
+		return
 	}
 	act := &Act{}
 	err = json.Unmarshal(data, act)
 	if err != nil {
-		log.Fatalf("couldn't decode makeAct json: %v", err)
+		http.Error(w, "Couldn't read request.", http.StatusBadRequest)
+		return
 	}
 	act.Player = playerID
 	g := re.gc.Games[gameID]
