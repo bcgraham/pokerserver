@@ -56,6 +56,8 @@ type PublicGame struct {
 
 type authenticator map[guid]guid
 
+const TIMEOUT = 100
+
 func (gc *GameController) getGames() []*Game {
 	gs := make([]*Game, 0)
 	for _, g := range gc.Games {
@@ -252,8 +254,8 @@ func (c *controller) getPlayerBet(g *Game, wanted guid) (int, money, error) {
 	c.public = pg
 	c.public.Turn.Player = wanted
 	c.public.Turn.PlayerBet = g.pot.totalPlayerBetThisRound(wanted)
-	c.public.Turn.Expiry = time.Now().Add(15 * time.Second).String()
-	timeout := time.After(15 * time.Second)
+	c.public.Turn.Expiry = time.Now().Add(TIMEOUT * time.Second).String()
+	timeout := time.After(TIMEOUT * time.Second)
 	for {
 		select {
 		case <-timeout:

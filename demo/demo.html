@@ -12,47 +12,40 @@
         }
         #table{
             display:inline-block;
+            border:1px solid gray;
+            padding:5px;
         }
         .description{
+            display:block;
+            margin-bottom:15px;
+        }
+        #player1{
+            border:1px solid gray;
+            width:auto;
             display:inline-block;
-            padding:0px;
+            padding:5px;
         }
     </style>
 </head>
     <body>
-        <input type="text" id="user">
-        <input type="text" id="gameID">
-        <input type="password" id="pass">
-        <div class="description">
-            <div id="handle"></div>
-            <div id="wealth"></div>
-            <div id="bet"></div>
-        </div>
+        <input type="text" id="user" placeholder="Username">
+        <input type="password" id="pass"placeholder="Password">
+        <br><br>
         <div id="player1">  
             <div class="description">
-                <div id="handle"></div>
-                <div id="wealth"></div>
-                <div id="bet"></div>
             </div>
-            <div class="card" id="hole1"><img src="cards/AS.png"</div>
-            <div class="card" id="hole2"><img src="cards/AS.png"</div>
+            <div class="card" id="hole1"><img src="cards/AS.png"></div>
+            <div class="card" id="hole2"><img src="cards/AS.png"></div>
         </div>
-        <div id="table">  
+        <br><br>
+        <div id="table"> 
+            <b>Table Cards</b><br><br>
             <div class="card" id="flop1"><img src="cards/AS.png"</div>
             <div class="card" id="flop2"><img src="cards/AS.png"</div>
             <div class="card" id="flop3"><img src="cards/AS.png"</div>
             <div class="card" id="turn"><img src="cards/AS.png"</div>
             <div class="card" id="river"><img src="cards/AS.png"</div>
-        </div>
-        <div id="player2">  
-            <div class="description">
-                <div id="handle"></div>
-                <div id="wealth"></div>
-                <div id="bet"></div>
-            </div>
-            <div class="card" ><img src="cards/b1fv.png"</div>
-            <div class="card" ><img src="cards/b1fv.png"</div>
-        </div>        
+        </div>       
     </body>
     <script type="text/javascript">
 
@@ -64,7 +57,7 @@ function getJSON(){
        success: function( d ) {
         data = jQuery.parseJSON(d)
         console.log(data)
-        $("#handle").html(data.table[0].handle)
+        $("#handle").html($("#user").val())
         $("#wealth").html(data.table[0].wealth)
         $("#bet").html(data.table[0].bet_so_far)    
         $("#hole1 > img").attr("src", "cards/" + data.cards.hole[0] + ".png")
