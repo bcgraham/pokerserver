@@ -46,11 +46,12 @@ type PublicPot struct {
 }
 
 type PublicGame struct {
-	GameID string       `json:"gameID"`
-	Table  PublicTable  `json:"table"`
-	Turn   *Turn        `json:"turn"`
-	Cards  *PublicCards `json:"cards"`
-	Pots   *PublicPots  `json:"pots"`
+	GameID          string       `json:"gameID"`
+	Table           PublicTable  `json:"table"`
+	Turn            *Turn        `json:"turn"`
+	Cards           *PublicCards `json:"cards"`
+	Pots            *PublicPots  `json:"pots"`
+	LastHandWinners []Playerhand `json:"last_winners"`
 }
 
 type authenticator map[guid]guid
@@ -194,6 +195,19 @@ type controller struct {
 	sync.Mutex
 }
 
+type Playerhand struct {
+	PlayerID guid
+	Hand     Hand
+}
+
+func (c *controller) recordWinners(winners []*Player) {
+	playerhands := make([]Playerhand, 0)
+	for _, player := range winners {
+		playerhands = append(playerhands, Playerhand{PlayerID: player.guid, Hand: player.bestHand})
+	}
+	c.public.LastHandWinners = playerhands
+}
+
 func (c *controller) getNewPlayers(g *Game, openSeats int) (players []*Player) {
 	c.Lock()
 	defer c.Unlock()
@@ -233,7 +247,9 @@ type Act struct {
 }
 
 func (c *controller) getPlayerBet(g *Game, wanted guid) (int, money, error) {
-	c.public = MakePublicGame(g)
+	pg := MakePublicGame(g)
+	pg.LastHandWinners = c.public.LastHandWinners
+	c.public = pg
 	c.public.Turn.Player = wanted
 	c.public.Turn.PlayerBet = g.pot.totalPlayerBetThisRound(wanted)
 	c.public.Turn.Expiry = time.Now().Add(15 * time.Second).String()

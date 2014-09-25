@@ -206,7 +206,7 @@ func (g *Game) resolveBets() {
 		sidepot := moneyInPots[potNumber]
 		//TODO: what happens when we've removed the players from the list because they timed out?
 		players := g.table.getPlayers(guids)
-		winners := findWinners(players)
+		winners := g.findWinners(players)
 		numWinners := money(len(winners))
 		for _, p := range winners {
 			p.wealth += sidepot / numWinners

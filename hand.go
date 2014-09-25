@@ -1,16 +1,15 @@
 package main
 
-import (
-	"strings"
-	// "fmt"
-)
+import "strings"
+
+// "fmt"
 
 type Hand []string
 
 var RANKS string = "--23456789TJQKA"
 
 // findWinners returns the slice of winning players.
-func findWinners(players []*Player) []*Player {
+func (g *Game) findWinners(players []*Player) []*Player {
 	if len(players) == 0 {
 		return nil
 	} else if len(players) == 1 {
@@ -36,6 +35,12 @@ func findWinners(players []*Player) []*Player {
 			}
 		}
 	}
+	if len(hands) == 1 {
+		g.controller.recordWinners([]*Player{})
+	} else {
+		g.controller.recordWinners(winners)
+	}
+
 	return winners
 }
 

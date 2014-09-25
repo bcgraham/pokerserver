@@ -48,7 +48,7 @@ func main() {
 	resp.Body.Close()
 	playerID := new(string)
 	err = json.Unmarshal(contents[:n], &struct {
-		PlayerID *string `json:"PlayerID"`
+		PlayerID *string `json:"playerID"`
 	}{PlayerID: playerID})
 	if err != nil {
 		log.Fatalf("Could not start game: %v", err)
@@ -176,7 +176,7 @@ type Game struct {
 		BetToPlayer int    `json:"bet_to_player"`
 		MinRaise    int    `json:"minimum_raise"`
 		Expiry      string `json:"expiry"`
-	}
+	} `json:"turn"`
 	Cards struct {
 		Hole  []string
 		Flop  []string
@@ -189,7 +189,7 @@ type Game struct {
 	}
 	User     string
 	Pass     string
-	GameID   string
+	GameID   string `json:"gameID"`
 	PlayerID string
 	BetSoFar int
 	URL      url.URL
