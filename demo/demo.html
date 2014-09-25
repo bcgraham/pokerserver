@@ -4,81 +4,62 @@
     <title>Hacker School Poker Server Demo</title>
     <script src="https://code.jquery.com/jquery-1.11.0.min.js"></script>
     <script src="https://code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+
+    <style type="text/css" media="screen">
+        .card{
+            display: inline;
+            padding:5px;
+        }
+        #table{
+            display:inline-block;
+        }
+        .description{
+            display:inline-block;
+            padding:0px;
+        }
+    </style>
+</head>
+    <body>
+        <input type="text" id="user">
+        <input type="text" id="gameID">
+        <input type="password" id="pass">
+        <div class="description">
+            <div id="handle"></div>
+            <div id="wealth"></div>
+            <div id="bet"></div>
+        </div>
+        <div id="player1">  
+            <div class="description">
+                <div id="handle"></div>
+                <div id="wealth"></div>
+                <div id="bet"></div>
+            </div>
+            <div class="card" id="hole1"><img src="cards/AS.png"</div>
+            <div class="card" id="hole2"><img src="cards/AS.png"</div>
+        </div>
+        <div id="table">  
+            <div class="card" id="flop1"><img src="cards/AS.png"</div>
+            <div class="card" id="flop2"><img src="cards/AS.png"</div>
+            <div class="card" id="flop3"><img src="cards/AS.png"</div>
+            <div class="card" id="turn"><img src="cards/AS.png"</div>
+            <div class="card" id="river"><img src="cards/AS.png"</div>
+        </div>
+        <div id="player2">  
+            <div class="description">
+                <div id="handle"></div>
+                <div id="wealth"></div>
+                <div id="bet"></div>
+            </div>
+            <div class="card" ><img src="cards/b1fv.png"</div>
+            <div class="card" ><img src="cards/b1fv.png"</div>
+        </div>        
+    </body>
     <script type="text/javascript">
-// var json = {
-//       "gameID":"fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a",
-//       "table":[
-//          {
-//             "playerID":"2fd318e4-0947-64b9-8b63-14f5a5824b8b",
-//             "handle":"BOB",
-//             "state":"active",
-//             "wealth":15002,
-//             "bet_so_far":0,
-//             "small blind":true
-//          },
-//          {
-//             "playerID":"0dd7d693-06f9-b5ba-694d-f8779579fa8a",
-//             "handle":"",
-//             "state":"active",
-//             "wealth":4006,
-//             "bet_so_far":0,
-//             "small blind":false
-//          }
-//       ],
-//       "turn":{
-//          "playerID":"2fd318e4-0947-64b9-8b63-14f5a5824b8b",
-//          "bet_so_far":0,
-//          "bet_to_player":0,
-//          "minimum_raise":0,
-//          "expiry":"2014-09-24 15:14:53.021303798 -0400 EDT"
-//       },
-//       "cards":{
-//          "hole":[
-//             "AC",
-//             "TD"
-//          ],
-//          "flop":[
-//             "2S",
-//             "3S",
-//             "JS"
-//          ],
-//          "turn":[
-//             "4D"
-//          ],
-//          "river":[
-//             "KD"
-//          ]
-//       },
-//       "pots":[
-//          {
-//             "size":60,
-//             "players":[
-//                "8c479795-adcb-a3c1-bebd-4bdf54016f4a",
-//                "2fd318e4-0947-64b9-8b63-14f5a5824b8b",
-//                "0dd7d693-06f9-b5ba-694d-f8779579fa8a"
-//             ]
-//          },
-//          {
-//             "size":0,
-//             "players":[
-//                "2fd318e4-0947-64b9-8b63-14f5a5824b8b",
-//                "0dd7d693-06f9-b5ba-694d-f8779579fa8a"
-//             ]
-//          },
-//          {
-//             "size":0,
-//             "players":[
-//                "2fd318e4-0947-64b9-8b63-14f5a5824b8b",
-//                "0dd7d693-06f9-b5ba-694d-f8779579fa8a"
-//             ]
-//          }
-//       ]
-//    }
 
 
 function getJSON(){
     $.ajax({
-       beforeSend: function(xhr) { xhr.setRequestHeader("Authorization", "Basic " + btoa("jake:password")); },
+       beforeSend: function(xhr) { console.log($("#user").val()+":"+$("#pass").val()); xhr.setRequestHeader("Authorization", "Basic " + btoa($("#user").val()+":"+$("#pass").val())); },
        url: "http://localhost:8080/games/fbbbbb44-bc4f-c3f6-6519-d81bd1a66d8a/",
        success: function( d ) {
         data = jQuery.parseJSON(d)
@@ -115,34 +96,4 @@ $(function() {
     setInterval(getJSON,200)
 });
 </script>
-    <style type="text/css" media="screen">
-        .card{
-            display: inline;
-            padding:5px;
-        }
-        #table{
-            display:inline-block;
-        }
-        .description{
-            display:inline-block;
-            padding:0px;
-        }
-    </style>
-</head>
-    <body>
-        <div class="description">
-            <div id="handle"></div>
-            <div id="wealth"></div>
-            <div id="bet"></div>
-        </div>
-        <div id="table">  
-            <div class="card" id="hole1"><img src="cards/AS.png"</div>
-            <div class="card" id="hole2"><img src="cards/AS.png"</div>
-            <div class="card" id="flop1"><img src="cards/AS.png"</div>
-            <div class="card" id="flop2"><img src="cards/AS.png"</div>
-            <div class="card" id="flop3"><img src="cards/AS.png"</div>
-            <div class="card" id="turn"><img src="cards/AS.png"</div>
-            <div class="card" id="river"><img src="cards/AS.png"</div>
-        </div>
-    </body>
 </html>
